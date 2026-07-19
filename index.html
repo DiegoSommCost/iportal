@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>iPortal</title>
+<meta name="description" content="iPortal — tu lanzadera personal de enlaces" />
+<meta name="theme-color" content="#07080c" />
+<link rel="icon" type="image/x-icon" href="favicon.ico" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="manifest" href="manifest.json" />
+</head>
+<body style="margin:0;">
+<div id="app"></div>
+<style>
+  :root{
+    --bg:#07080c;
+    --panel:#111319;
+    --panel-hover:#161923;
+    --line:#22242e;
+    --text:#e9eaf2;
+    --muted:#7d8194;
+    --blue:#4d7cff;
+    --cyan:#5eead4;
+    --amber:#f5b942;
+    --danger:#ef5757;
+    --mono:'JetBrains Mono','SF Mono',Consolas,monospace;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  #app{
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 500px at 15% -10%, rgba(77,124,255,0.10), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(94,234,212,0.07), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    padding:0 0 60px 0;
+  }
+  a{color:inherit;text-decoration:none;}
+
+  /* ---- Topbar ---- */
+  .topbar{
+    position:sticky; top:0; z-index:30;
+    display:flex; align-items:center; gap:16px;
+    padding:16px 24px;
+    background:rgba(7,8,12,0.85);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .brand{
+    font-family:var(--mono);
+    font-size:20px; font-weight:700; letter-spacing:0.02em;
+    white-space:nowrap;
+  }
+  .brand .i{color:var(--blue);}
+  .brand .portal{color:var(--cyan);}
+  .brand small{
+    display:block; font-family:var(--sans); font-weight:400;
+    font-size:10px; letter-spacing:0.18em; color:var(--muted);
+    margin-top:-2px;
+  }
+  .search-wrap{
+    flex:1; min-width:180px; max-width:420px;
+    position:relative;
+  }
+  .search-wrap svg{position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:0.5;}
+  .search-wrap input{
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:8px;
+    padding:9px 12px 9px 34px;
+    font-size:13px;
+    font-family:var(--sans);
+    outline:none;
+    transition:border-color .15s;
+  }
+  .search-wrap input:focus{border-color:var(--blue);}
+  .topbar-actions{display:flex; gap:8px; margin-left:auto;}
+  .btn{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--blue);
+    color:#0a0c12;
+    border:none;
+    border-radius:8px;
+    padding:9px 14px;
+    font-size:13px;
+    font-weight:600;
+    font-family:var(--sans);
+    cursor:pointer;
+    transition:filter .15s, transform .1s;
+  }
+  .btn:hover{filter:brightness(1.12);}
+  .btn:active{transform:scale(0.97);}
+  .btn.ghost{
+    background:transparent;
+    color:var(--muted);
+    border:1px solid var(--line);
+  }
+  .btn.ghost:hover{color:var(--text); border-color:var(--muted);}
+  .status{
+    font-family:var(--mono);
+    font-size:10px;
+    color:var(--muted);
+    letter-spacing:0.05em;
+    display:flex; align-items:center; gap:6px;
+  }
+  .status .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);}
+  .status .dot.saving{background:var(--amber);}
+  .status .dot.error{background:var(--danger);}
+
+  /* ---- Grid ---- */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:18px;
+    padding:22px 24px;
+    max-width:1200px;
+    margin:0 auto;
+  }
+  @media (max-width:760px){
+    .grid{grid-template-columns:1fr;}
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px 14px 10px;
+    display:flex; flex-direction:column;
+    min-width:0;
+  }
+  .card-head{
+    display:flex; align-items:center; gap:8px;
+    padding-bottom:10px; margin-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+  .cat-dot{width:8px; height:8px; border-radius:2px; flex-shrink:0;}
+  .cat-name{
+    font-family:var(--mono);
+    font-size:14px; font-weight:700;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    flex:1;
+    background:transparent; border:none; color:var(--text);
+    outline:none;
+    min-width:0;
+    padding:2px 0;
+  }
+  .cat-count{
+    font-family:var(--mono);
+    font-size:10px;
+    color:var(--muted);
+    background:rgba(255,255,255,0.04);
+    border-radius:10px;
+    padding:2px 7px;
+  }
+  .icon-btn{
+    background:transparent; border:none; cursor:pointer;
+    color:var(--muted);
+    padding:4px; border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    transition:color .15s, background .15s;
+  }
+  .icon-btn:hover{color:var(--text); background:rgba(255,255,255,0.06);}
+  .icon-btn.danger:hover{color:var(--danger);}
+
+  .link-list{display:flex; flex-direction:column; gap:1px;}
+  .link-row{
+    display:flex; align-items:center; gap:9px;
+    padding:8px 7px;
+    border-radius:7px;
+    background:transparent;
+  }
+  .link-row:hover{background:var(--panel-hover);}
+  .drag-handle{
+    flex-shrink:0; width:10px; text-align:center;
+    color:var(--muted); font-size:11px; letter-spacing:-2px;
+    opacity:0.35; cursor:grab; user-select:none;
+  }
+  .link-row:hover .drag-handle{opacity:0.75;}
+  .link-fav{width:16px; height:16px; flex-shrink:0; border-radius:3px; opacity:0.9;}
+  .link-title{
+    flex:1; min-width:0;
+    font-size:14px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .link-row a.link-title:hover{color:var(--cyan); text-decoration:underline;}
+  .link-actions{
+    display:flex; gap:2px; flex-shrink:0;
+    opacity:0; pointer-events:none;
+  }
+  .link-row:hover .link-actions{opacity:1; pointer-events:auto;}
+  .link-row.dragging{opacity:0.35;}
+  .link-row.drag-over-top{box-shadow:inset 0 2px 0 0 var(--cyan);}
+  .link-row.drag-over-bottom{box-shadow:inset 0 -2px 0 0 var(--cyan);}
+  .link-list.drag-over-empty{
+    outline:1px dashed var(--cyan); outline-offset:2px; border-radius:7px;
+  }
+
+  .add-link-btn{
+    margin-top:6px;
+    display:flex; align-items:center; gap:6px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--muted);
+    background:transparent;
+    border:1px dashed var(--line);
+    border-radius:7px;
+    padding:7px 10px;
+    cursor:pointer;
+    transition:color .15s, border-color .15s;
+  }
+  .add-link-btn:hover{color:var(--cyan); border-color:var(--cyan);}
+
+  .card.add-category{
+    align-items:center; justify-content:center;
+    min-height:120px;
+    border-style:dashed;
+    cursor:pointer;
+    color:var(--muted);
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:0.08em;
+    gap:8px;
+  }
+  .card.add-category:hover{color:var(--cyan); border-color:var(--cyan);}
+
+  .empty{
+    text-align:center; padding:60px 20px; color:var(--muted);
+    font-family:var(--mono); font-size:13px; letter-spacing:0.04em;
+  }
+
+  /* ---- Modal ---- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(4,5,8,0.7);
+    display:flex; align-items:center; justify-content:center;
+    z-index:100; padding:20px;
+    backdrop-filter:blur(2px);
+  }
+  .overlay.hidden{display:none;}
+  .modal{
+    background:#14161e;
+    border:1px solid var(--line);
+    border-radius:14px;
+    width:100%; max-width:380px;
+    padding:20px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .modal h3{
+    margin:0 0 16px; font-family:var(--mono);
+    font-size:13px; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--cyan);
+  }
+  .field{margin-bottom:12px;}
+  .field label{
+    display:block; font-size:11px; color:var(--muted);
+    margin-bottom:5px; font-family:var(--mono); letter-spacing:0.05em;
+  }
+  .field input, .field select{
+    width:100%;
+    background:var(--bg);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:7px;
+    padding:9px 10px;
+    font-size:13px;
+    font-family:var(--sans);
+    outline:none;
+  }
+  .field input:focus, .field select:focus{border-color:var(--blue);}
+  .modal-actions{display:flex; gap:8px; margin-top:18px; justify-content:flex-end;}
+  .modal-actions .btn.cancel{background:transparent; color:var(--muted); border:1px solid var(--line);}
+  .modal-actions .btn.danger-fill{background:var(--danger); color:#1a0a0a;}
+  .modal p.confirm-text{font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 4px;}
+
+  @media (max-width:520px){
+    .topbar{padding:12px 14px;}
+    .grid{padding:14px; gap:12px; grid-template-columns:1fr;}
+    .brand{font-size:17px;}
+  }
+</style>
+
+<script>
+(function(){
+  // ======================================================================
+  //  CONFIGURACIÓN — rellena estos dos valores con los tuyos de jsonbin.io
+  //  (En tu cuenta de jsonbin.io: API Keys → X-MASTER-KEY, y el ID de tu bin)
+  // ======================================================================
+  const JSONBIN_ID  = 'PON_AQUI_TU_BIN_ID';
+  const JSONBIN_KEY = 'PON_AQUI_TU_X_MASTER_KEY';
+  // ======================================================================
+  const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_ID;
+
+  const PALETTE = ['#4d7cff','#5eead4','#f5b942','#f26fa1','#8b7cff','#5ecbf2','#8fd35e','#f2895e'];
+
+  const SEED = [
+    {name:'IMPORTANT', links:[
+      ['Mentor H10','https://portal.h10hotels.com/mentor/'],
+      ['Banco Santander','https://www.bancosantander.es/es/particulares#'],
+      ['CaixaBank','https://www.caixabank.es/particular/homes/homeparticularesv1_es.html#'],
+      ['CajaMar','https://www.cajamar.es'],
+      ['Iberdrola','https://www.iberdrola.es/wclifral/login/loginForm'],
+      ['Qustodio','https://family.qustodio.com/parents-app#/'],
+      ['Carrefour - Panel de Consumo','https://www.paneldeconsumo.com/'],
+      ['Carrefour Pass','https://www.pass.carrefour.es/ss/sfc/PosicionGlobal.html?rol=TITULAR'],
+      ['Cita Inem','http://www.juntadeandalucia.es/servicioandaluzdeempleo/web/citaprevia/public/'],
+      ['Hidralia','https://hidralia.aguasonline.es/'],
+      ['PayPal','https://www.paypal.com/signin/?country.x=ES&locale.x=es_ES'],
+      ['Sellar Paro','https://ws054.juntadeandalucia.es/apdweb/group/10210'],
+      ['Descuentos H10','https://h10hotels.clubdebenefits.com/offers/welcome'],
+      ['Reservapista Estepona','https://reservapista.estepona.es/CronosWeb/Login'],
+      ['Amazon.com','https://www.amazon.com/'],
+      ['Amazon.es','https://www.amazon.es/'],
+      ['Amazon.co.uk','https://www.amazon.co.uk/'],
+      ['Infinity Dashboard','https://dash.infinityfree.com/accounts/if0_41353830']
+    ]},
+    {name:'DAILY', links:[
+      ['Diario Sur','http://www.diariosur.es/'],
+      ['El Mundo','http://www.elmundo.es/'],
+      ['El País','http://elpais.com/'],
+      ['Marca','https://www.marca.com/'],
+      ['Facebook','http://www.facebook.com'],
+      ['Stage32','https://www.stage32.com/home#_=_'],
+      ['Google Photos','https://photos.google.com/'],
+      ['Google Play Books','https://play.google.com/books/uploads'],
+      ['Horario Box Solaris','http://www.supersaas.es/schedule/BlackSunCrossBox/box_solaris'],
+      ['Instagram','https://www.instagram.com/'],
+      ['Outlook','http://www.hotmail.com'],
+      ['Twitter','https://twitter.com/Araxx9'],
+      ['Reddit','http://www.reddit.com/'],
+      ['Reddit Fantasy','http://www.reddit.com/r/Fantasy/'],
+      ['Reddit Fantasy Writers','http://www.reddit.com/r/fantasywriters/'],
+      ['Reddit Writers','http://www.reddit.com/r/writing/'],
+      ['Reddit Writing HUB','http://www.reddit.com/r/WritingHub/'],
+      ['Reddit NoSleep','http://www.reddit.com/r/nosleep/'],
+      ['YouTube','https://www.youtube.com'],
+      ['Pocket','https://getpocket.com/saves'],
+      ['Learn Elfish','https://ardalambion.net/']
+    ]},
+    {name:'DOWNLOADS', links:[
+      ['Netflix','https://www.netflix.com/browse'],
+      ['Prime Video','https://www.primevideo.com/region/eu/storefront'],
+      ['Movistar Plus','https://ver.movistarplus.es/?id_perfil=SUSCRI2'],
+      ['1Flex','https://www.1flex.nl/'],
+      ['CineHD','https://cinehd.cc/home'],
+      ['CineHD Provider','https://cinehd.cc/provider'],
+      ['Popcornmovies','https://popcornmovies.org/home'],
+      ['Photocall.tv','http://photocall.tv/'],
+      ['Project Free TV','https://ww1.123moviesfree.net/home/'],
+      ['Project Free TV 2','https://wvw.123movieshub.one/home/'],
+      ['DIVX Total','https://www3.divxtotal.lol/'],
+      ['Buff Sports','https://buffsports.io/'],
+      ['uIndex','https://uindex.org/'],
+      ['Eztvx','https://eztvx.to/home'],
+      ['TodoTorrents','https://todotorrents.org/'],
+      ['Mejor Torrent','https://www28.mejortorrent.eu/inicio'],
+      ['YTMP Audio Extractor','https://ytmp3.cc/23f99/'],
+      ['The Pirate Bay','https://thepiratebay.org/'],
+      ['The Pirate Bay 2','https://www2.thepiratebay3.to/'],
+      ['Books - 7 Mejores sitios','https://es.safetydetectives.com/blog/mejores-sitios-de-torrents/'],
+      ['Books - LectuLandia','https://ww3.lectulandia.com/'],
+      ['Books - Internet Archive','https://archive.org/'],
+      ['Comics - Batcave.biz','https://batcave.biz/']
+    ]},
+    {name:'TRAINING', links:[
+      ['Invictus Performance','https://www.crossfitinvictus.com/category/wod/performance/'],
+      ['Aerobic Capacity','http://aerobiccapacity.com/'],
+      ['Archery','http://www.learn-archery.com/index.html'],
+      ['Box Solaris','https://boxsolaris.wordpress.com/'],
+      ['Box Solaris Wordpress','https://wordpress.com/pages/boxsolaris.wordpress.com'],
+      ['Box Solaris Wordpress EN','https://wordpress.com/stats/insights/boxsolarisenglish.wordpress.com'],
+      ['Built By Bergeron','https://comptrain.co/free-programming/'],
+      ['Consejería Deportes Andalucía','http://www.juntadeandalucia.es/turismoydeporte/opencms/areas/oficina-virtual/formularios/deporte/'],
+      ['CrossFit.com','http://crossfit.com'],
+      ['CrossFit Games','http://games.crossfit.com/'],
+      ['CrossFit Journal','http://journal.crossfit.com/'],
+      ['CrossFit Invictus','https://www.crossfitinvictus.com/wod/'],
+      ['ExRx.net','https://www.exrx.net/']
+    ]},
+    {name:'SHOPPING', links:[
+      ['SurveyWorld','https://www.univoxcommunity.com/MySvc/dashboard'],
+      ['Ofertitas.es','https://www.ofertitas.es/'],
+      ['Chollometro','https://www.chollometro.com/'],
+      ['AliExpress','http://es.aliexpress.com/'],
+      ['Amazon.co.uk','http://www.amazon.co.uk'],
+      ['Amazon.es','http://www.amazon.es/'],
+      ['BlogDeChollos','http://www.blogdechollos.com/'],
+      ['Carrefour Online','http://www.carrefour.es'],
+      ['DHGate','https://es.dhgate.com/'],
+      ['Ebay','http://www.ebay.es'],
+      ['ElectroCosto','https://www.electrocosto.com/'],
+      ['PcComponentes','https://www.pccomponentes.com/'],
+      ['Reebok.es','http://www.reebok.es/'],
+      ['TarifasBlancas','http://www.tarifasblancas.com/'],
+      ['Wallapop','http://es.wallapop.com'],
+      ['Zavvi.es','http://www.zavvi.es']
+    ]},
+    {name:'OTHER', links:[
+      ['Ask a Prepper','https://www.askaprepper.com/'],
+      ['AECOSAN','http://www.aecosan.msssi.gob.es/'],
+      ['Acceso Remoto Tablet','ftp://192.168.1.131:2046/'],
+      ['Casting','http://www.casting.es/'],
+      ['Cines Banús','http://www.cinesteatrogoya.com/'],
+      ['Cines La Cañada','http://www.cinesa.es/Cines/La-Canada'],
+      ['Clandestino de Actores','http://clandestinodeactores.com/'],
+      ['CrowdFire','https://web.crowdfireapp.com/#/?_k=kh7kpl'],
+      ['Donantes Málaga','http://www.donantesmalaga.org/donar/proximas-colectas-en-malaga'],
+      ['Educación Primaria','http://primerodecarlos2.blogspot.com.es/'],
+      ['EuroInnova','http://portal.euroinnova.edu.es/'],
+      ['Google Translate','https://translate.google.es/'],
+      ['Paleo Hacks','http://blog.paleohacks.com/'],
+      ['Playstation Account','https://account.sonyentertainmentnetwork.com/liquid/cam/account/profile/profile-details.action'],
+      ['Playstation Liga','https://es.ligaplaystation.com/es/'],
+      ['Playstation Store','https://store.playstation.com/#!/es-es/home/main'],
+      ['Programación TV','http://www.elmundo.es/television/programacion-tv/'],
+      ['Twitch','https://www.twitch.tv/']
+    ]},
+    {name:'WRITING', links:[
+      ['Tor.com','https://www.tor.com/'],
+      ["Writer's Edit",'https://writersedit.com/'],
+      ['Final Draft','https://www.finaldraft.com/'],
+      ['Writing Classes','https://www.writerswrite.com/resources/classes/'],
+      ['Screenwriting Staffing','https://www.screenwritingstaffing.com/'],
+      ['Prime Books','https://www.prime-books.com/'],
+      ["Clarke's World",'http://clarkesworldmagazine.com/'],
+      ['Fantasy Magazine','http://www.fantasy-magazine.com/'],
+      ['Senses Five','https://www.sensesfive.com/'],
+      ['Night Shade Books','http://www.nightshadebooks.com/'],
+      ['Daily Science Fiction','https://dailysciencefiction.com/'],
+      ['Strange Horizons','http://strangehorizons.com/'],
+      ['PodCastle','https://podcastle.org/'],
+      ['Beneath Ceaseless Skies','http://www.beneath-ceaseless-skies.com/'],
+      ['Lightspeed Magazine','http://www.lightspeedmagazine.com/'],
+      ['Apex Magazine','https://www.apex-magazine.com/'],
+      ['Locus Magazine','https://locusmag.com/'],
+      ['Interzone Magazine','http://ttapress.com/interzone/'],
+      ['Uncanny Magazine','https://uncannymagazine.com/'],
+      ['FanStory.com','https://www.fanstory.com/'],
+      ['ProWritingAid','https://prowritingaid.com/'],
+      ['HitRecord','https://hitrecord.org/'],
+      ['WriteJobs','http://www.writejobs.info/'],
+      ['SMedian','https://www.smedian.com/pubs'],
+      ['Writing Cooperative','https://writingcooperative.com/'],
+      ['Medium.com','https://medium.com/'],
+      ["Don't Hit Publish",'https://donthitpublish.growthtools.com/ratings'],
+      ['85K90','https://85k90.com/'],
+      ['UpWork','https://www.upwork.com/ab/find-work/'],
+      ['Jane Friedman','https://www.janefriedman.com/blog/'],
+      ['OU - Start Writing Fiction','http://www.open.edu/openlearn/ocw/mod/oucontent/view.php?id=20411'],
+      ['The Writer Magazine','https://www.writermag.com/'],
+      ['Writers Online','https://www.writers-online.co.uk/'],
+      ['NaNoWriMo','https://www.nanowrimo.org/'],
+      ["The Writer's Academy",'https://thewritersacademy.co.uk/'],
+      ["Writer's Digest - Best Sites",'http://www.writersdigest.com/online-editor/websites-for-writers-19-sites-with-great-writing-advice'],
+      ['100 Best Websites for Writers','https://thewritelife.com/100-best-websites-for-writers-2018/'],
+      ['Best Writing Websites','https://www.scribendi.com/advice/best_writing_websites.en.html'],
+      ['Websites for Writers','https://www.writersandartists.co.uk/writers/advice/108/a-writers-toolkit/essential-information/websites-for-writers'],
+      ["Writer's Cooperative",'https://writingcooperative.com/top-websites-for-fiction-writers-to-share-their-writing-cc4ed210105b'],
+      ['Writing.com','https://www.writing.com'],
+      ['Remote Writer Jobs','https://www.remotewriterjobs.com/forum/find-paid-work'],
+      ['Freelance Writing Gigs','https://www.freelancewritinggigs.com/'],
+      ['Make a Living Writing','https://www.makealivingwriting.com/'],
+      ['Freelance Writers Den','https://www.makealivingwriting.com/tag/freelance-writers-den/']
+    ]},
+    {name:'MODERN TODAY', links:[
+      ['Modern Today','https://modern-today.com/'],
+      ['Modern Today @ Twitter','https://twitter.com/ModernToday1'],
+      ['Modern Today @ Facebook','https://www.facebook.com/ModernToday1/'],
+      ['Medium','https://medium.com/@diego.sommariva'],
+      ['Blogging Guide Articles','https://bloggingguide.substack.com/p/free-blogging-guide-articles'],
+      ['Substack Writing','https://medium.com/substack-writing'],
+      ['Active Medium Publications','https://medium.com/active-publications'],
+      ['PayWall Hacks','https://medium.com/paywall-hacks'],
+      ['MailChimp','https://mailchimp.com/'],
+      ['SiteGround','https://ua.siteground.es/'],
+      ['DashBoard','https://modern-today.com/wp-admin/admin.php?page=custom-dashboard.php'],
+      ['Google Analytics','https://analytics.google.com/analytics/web/'],
+      ['SmartBlogger @ Facebook','https://www.facebook.com/smartbloggerhq/'],
+      ['SmartBlogger','https://smartblogger.com/'],
+      ['SearchTraffic.com','https://searchtraffic.com/seo-news/']
+    ]}
+  ];
+
+  function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+
+  function buildSeedState(){
+    return {
+      categories: SEED.map((cat,i) => ({
+        id: uid(),
+        name: cat.name,
+        color: PALETTE[i % PALETTE.length],
+        links: cat.links.map(([title,url]) => ({ id: uid(), title, url }))
+      }))
+    };
+  }
+
+  let state = null;
+  let saveTimer = null;
+  const statusEl = () => document.getElementById('saveStatus');
+
+  function setSaving(on, error){
+    const el = statusEl();
+    if(!el) return;
+    el.querySelector('.dot').classList.toggle('saving', !!on);
+    el.querySelector('.dot').classList.toggle('error', !!error);
+    el.querySelector('span.txt').textContent = error ? 'sin conexión' : (on ? 'guardando…' : 'sincronizado');
+  }
+
+  function persist(){
+    setSaving(true);
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      try{
+        const res = await fetch(JSONBIN_URL, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Master-Key': JSONBIN_KEY
+          },
+          body: JSON.stringify(state)
+        });
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+        setSaving(false);
+      }catch(e){
+        console.error('Error guardando en JSONBin', e);
+        setSaving(false, true);
+      }
+    }, 500);
+  }
+
+  async function loadState(){
+    try{
+      const res = await fetch(JSONBIN_URL + '/latest', {
+        headers: { 'X-Master-Key': JSONBIN_KEY }
+      });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if(data && data.record && Array.isArray(data.record.categories)){
+        state = data.record;
+        return;
+      }
+      throw new Error('Respuesta inesperada de JSONBin');
+    }catch(e){
+      console.error('Error cargando de JSONBin', e);
+      setSaving(false, true);
+      state = buildSeedState();
+    }
+  }
+
+  function faviconFor(url){
+    try{
+      const u = new URL(url);
+      if(u.protocol === 'http:' || u.protocol === 'https:'){
+        return 'https://www.google.com/s2/favicons?sz=32&domain=' + u.hostname;
+      }
+    }catch(e){}
+    return '';
+  }
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------- Rendering ----------
+  const root = document.getElementById('app');
+
+  function render(){
+    const query = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+
+    let html = '';
+    html += renderTopbar(query);
+    html += '<main class="grid" id="grid">';
+
+    const cats = state.categories;
+    let anyVisible = false;
+    const draggableEnabled = !query;
+
+    cats.forEach(cat => {
+      const filteredLinks = query
+        ? cat.links.filter(l => l.title.toLowerCase().includes(query) || l.url.toLowerCase().includes(query))
+        : cat.links;
+      if(query && filteredLinks.length === 0) return;
+      anyVisible = true;
+      html += renderCard(cat, filteredLinks, draggableEnabled);
+    });
+
+    html += `<div class="card add-category" data-action="add-category">
+      <div style="font-size:20px;">+</div>
+      <div>NUEVA CATEGORÍA</div>
+    </div>`;
+
+    html += '</main>';
+
+    if(!anyVisible && query){
+      html += `<div class="empty">Sin resultados para "${esc(query)}"</div>`;
+    }
+
+    root.innerHTML = html;
+    attachEvents();
+    const s = document.getElementById('searchInput');
+    if(s) { s.focus({preventScroll:true}); const val = s.value; s.value=''; s.value = val; }
+  }
+
+  function renderTopbar(query){
+    return `
+    <header class="topbar">
+      <div class="brand"><span class="i">i</span><span class="portal">Portal</span></div>
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="searchInput" placeholder="Buscar enlaces..." value="${esc(query)}" autocomplete="off"/>
+      </div>
+      <div class="topbar-actions">
+        <div class="status" id="saveStatus"><span class="dot"></span><span class="txt">sincronizado</span></div>
+        <button class="btn" data-action="add-link-global">+ Enlace</button>
+      </div>
+    </header>`;
+  }
+
+  function renderCard(cat, links, draggableEnabled){
+    const rows = links.map(l => `
+      <div class="link-row" data-link-id="${l.id}" data-cat-id="${cat.id}" draggable="${draggableEnabled}">
+        <span class="drag-handle">⠿</span>
+        <img class="link-fav" src="${faviconFor(l.url)}" alt="" onerror="this.style.visibility='hidden'"/>
+        <a class="link-title" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" title="${esc(l.url)}">${esc(l.title)}</a>
+        <div class="link-actions">
+          <button class="icon-btn" data-action="edit-link" title="Editar">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
+          <button class="icon-btn danger" data-action="delete-link" title="Eliminar">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+        </div>
+      </div>`).join('');
+
+    return `
+    <div class="card" data-cat-id="${cat.id}">
+      <div class="card-head">
+        <div class="cat-dot" style="background:${cat.color}"></div>
+        <input class="cat-name" data-action="rename-category" data-cat-id="${cat.id}" value="${esc(cat.name)}" />
+        <span class="cat-count">${links.length}</span>
+        <button class="icon-btn danger" data-action="delete-category" data-cat-id="${cat.id}" title="Eliminar categoría">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="link-list" data-cat-id="${cat.id}">${rows || '<div style="color:var(--muted);font-size:12px;padding:8px 6px;">Sin enlaces</div>'}</div>
+      <button class="add-link-btn" data-action="add-link" data-cat-id="${cat.id}">+ añadir enlace</button>
+    </div>`;
+  }
+
+  // ---------- Modals ----------
+  function openModal(innerHtml){
+    const wrap = document.createElement('div');
+    wrap.className = 'overlay';
+    wrap.id = 'overlay';
+    wrap.innerHTML = `<div class="modal">${innerHtml}</div>`;
+    wrap.addEventListener('click', (e) => { if(e.target === wrap) closeModal(); });
+    document.body.appendChild(wrap);
+  }
+  function closeModal(){
+    const o = document.getElementById('overlay');
+    if(o) o.remove();
+  }
+
+  function openLinkForm({catId, link}){
+    const isEdit = !!link;
+    const catOptions = state.categories.map(c =>
+      `<option value="${c.id}" ${c.id === catId ? 'selected' : ''}>${esc(c.name)}</option>`
+    ).join('');
+
+    openModal(`
+      <h3>${isEdit ? 'Editar enlace' : 'Nuevo enlace'}</h3>
+      <div class="field">
+        <label>Título</label>
+        <input id="f-title" value="${isEdit ? esc(link.title) : ''}" placeholder="Ej. Banco Santander" />
+      </div>
+      <div class="field">
+        <label>URL</label>
+        <input id="f-url" value="${isEdit ? esc(link.url) : ''}" placeholder="https://..." />
+      </div>
+      <div class="field">
+        <label>Categoría</label>
+        <select id="f-cat">${catOptions}</select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn cancel" data-action="close-modal">Cancelar</button>
+        <button class="btn" data-action="save-link" data-link-id="${isEdit ? link.id : ''}">Guardar</button>
+      </div>
+    `);
+    setTimeout(() => document.getElementById('f-title')?.focus(), 30);
+  }
+
+  function openCategoryForm(){
+    openModal(`
+      <h3>Nueva categoría</h3>
+      <div class="field">
+        <label>Nombre</label>
+        <input id="f-cat-name" placeholder="Ej. TRABAJO" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn cancel" data-action="close-modal">Cancelar</button>
+        <button class="btn" data-action="save-category">Crear</button>
+      </div>
+    `);
+    setTimeout(() => document.getElementById('f-cat-name')?.focus(), 30);
+  }
+
+  function openConfirm(text, onConfirm){
+    openModal(`
+      <h3>Confirmar</h3>
+      <p class="confirm-text">${esc(text)}</p>
+      <div class="modal-actions">
+        <button class="btn cancel" data-action="close-modal">Cancelar</button>
+        <button class="btn danger-fill" id="confirmBtn">Eliminar</button>
+      </div>
+    `);
+    document.getElementById('confirmBtn').addEventListener('click', () => {
+      closeModal();
+      onConfirm();
+    });
+  }
+
+  // ---------- Event wiring ----------
+  function attachEvents(){
+    const searchInput = document.getElementById('searchInput');
+    if(searchInput){
+      searchInput.addEventListener('input', () => render());
+      searchInput.addEventListener('keydown', e => { if(e.key === 'Escape'){ searchInput.value=''; render(); } });
+    }
+
+    root.querySelectorAll('[data-action="rename-category"]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const cat = state.categories.find(c => c.id === inp.dataset.catId);
+        if(cat && inp.value.trim()){ cat.name = inp.value.trim(); persist(); }
+      });
+      inp.addEventListener('keydown', e => { if(e.key === 'Enter') inp.blur(); });
+    });
+
+    root.querySelectorAll('[data-action="delete-category"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cat = state.categories.find(c => c.id === btn.dataset.catId);
+        if(!cat) return;
+        openConfirm(`Se eliminará la categoría "${cat.name}" y sus ${cat.links.length} enlaces.`, () => {
+          state.categories = state.categories.filter(c => c.id !== cat.id);
+          persist(); render();
+        });
+      });
+    });
+
+    root.querySelectorAll('[data-action="add-link"]').forEach(btn => {
+      btn.addEventListener('click', () => openLinkForm({ catId: btn.dataset.catId, link: null }));
+    });
+
+    const addLinkGlobal = root.querySelector('[data-action="add-link-global"]');
+    if(addLinkGlobal){
+      addLinkGlobal.addEventListener('click', () => openLinkForm({ catId: state.categories[0]?.id, link: null }));
+    }
+
+    root.querySelectorAll('[data-action="edit-link"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const row = btn.closest('.link-row');
+        const cat = state.categories.find(c => c.id === row.dataset.catId);
+        const link = cat?.links.find(l => l.id === row.dataset.linkId);
+        if(link) openLinkForm({ catId: cat.id, link });
+      });
+    });
+
+    root.querySelectorAll('[data-action="delete-link"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const row = btn.closest('.link-row');
+        const cat = state.categories.find(c => c.id === row.dataset.catId);
+        const link = cat?.links.find(l => l.id === row.dataset.linkId);
+        if(!link) return;
+        openConfirm(`Se eliminará el enlace "${link.title}".`, () => {
+          cat.links = cat.links.filter(l => l.id !== link.id);
+          persist(); render();
+        });
+      });
+    });
+
+    const addCatCard = root.querySelector('[data-action="add-category"]');
+    if(addCatCard) addCatCard.addEventListener('click', openCategoryForm);
+  }
+
+  document.addEventListener('click', (e) => {
+    if(e.target.closest('[data-action="close-modal"]')) closeModal();
+
+    const saveCat = e.target.closest('[data-action="save-category"]');
+    if(saveCat){
+      const name = document.getElementById('f-cat-name').value.trim();
+      if(!name) return;
+      state.categories.push({
+        id: uid(), name,
+        color: PALETTE[state.categories.length % PALETTE.length],
+        links: []
+      });
+      persist(); closeModal(); render();
+      return;
+    }
+
+    const saveLink = e.target.closest('[data-action="save-link"]');
+    if(saveLink){
+      const title = document.getElementById('f-title').value.trim();
+      let url = document.getElementById('f-url').value.trim();
+      const catId = document.getElementById('f-cat').value;
+      if(!title || !url) return;
+      if(!/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(url)) url = 'https://' + url;
+
+      const linkId = saveLink.dataset.linkId;
+      if(linkId){
+        for(const c of state.categories){
+          const existing = c.links.find(l => l.id === linkId);
+          if(existing){
+            if(c.id !== catId){
+              c.links = c.links.filter(l => l.id !== linkId);
+              const target = state.categories.find(cc => cc.id === catId);
+              target.links.push({ id: linkId, title, url });
+            } else {
+              existing.title = title; existing.url = url;
+            }
+            break;
+          }
+        }
+      } else {
+        const target = state.categories.find(c => c.id === catId);
+        if(target) target.links.push({ id: uid(), title, url });
+      }
+      persist(); closeModal(); render();
+      return;
+    }
+  });
+
+  // ---------- Drag & drop ----------
+  let dragSource = null; // { catId, linkId }
+
+  function clearDragOverStyles(){
+    document.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(el => {
+      el.classList.remove('drag-over-top','drag-over-bottom');
+    });
+    document.querySelectorAll('.drag-over-empty').forEach(el => el.classList.remove('drag-over-empty'));
+  }
+
+  document.addEventListener('dragstart', e => {
+    const row = e.target.closest('.link-row');
+    if(!row || row.getAttribute('draggable') !== 'true') return;
+    dragSource = { catId: row.dataset.catId, linkId: row.dataset.linkId };
+    try{ e.dataTransfer.setData('text/plain', row.dataset.linkId); }catch(err){}
+    e.dataTransfer.effectAllowed = 'move';
+    requestAnimationFrame(() => row.classList.add('dragging'));
+  });
+
+  document.addEventListener('dragend', () => {
+    document.querySelectorAll('.link-row.dragging').forEach(r => r.classList.remove('dragging'));
+    clearDragOverStyles();
+    dragSource = null;
+  });
+
+  document.addEventListener('dragover', e => {
+    if(!dragSource) return;
+    const list = e.target.closest('.link-list');
+    if(!list) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const row = e.target.closest('.link-row');
+    clearDragOverStyles();
+    if(row && row.dataset.linkId !== dragSource.linkId){
+      const rect = row.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      row.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+    } else if(!row){
+      list.classList.add('drag-over-empty');
+    }
+  });
+
+  document.addEventListener('drop', e => {
+    if(!dragSource) return;
+    const list = e.target.closest('.link-list');
+    if(!list) return;
+    e.preventDefault();
+
+    const targetCatId = list.dataset.catId;
+    const row = e.target.closest('.link-row');
+
+    const srcCat = state.categories.find(c => c.id === dragSource.catId);
+    const srcIndex = srcCat.links.findIndex(l => l.id === dragSource.linkId);
+    if(srcIndex === -1){ clearDragOverStyles(); dragSource = null; return; }
+    const [moved] = srcCat.links.splice(srcIndex, 1);
+
+    const targetCat = state.categories.find(c => c.id === targetCatId);
+    let targetIndex = targetCat.links.length;
+    if(row){
+      const rect = row.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      let idx = targetCat.links.findIndex(l => l.id === row.dataset.linkId);
+      if(idx === -1) idx = targetCat.links.length;
+      targetIndex = before ? idx : idx + 1;
+    }
+    targetCat.links.splice(targetIndex, 0, moved);
+
+    clearDragOverStyles();
+    dragSource = null;
+    persist();
+    render();
+  });
+
+  // ---------- Init ----------
+  root.innerHTML = '<div class="empty">Cargando iPortal…</div>';
+  loadState().then(render);
+})();
+</script>
+
+</body>
+</html>
