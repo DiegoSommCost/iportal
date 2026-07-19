@@ -26,6 +26,7 @@
     --danger:#ef5757;
     --mono:'JetBrains Mono','SF Mono',Consolas,monospace;
     --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --text-scale:1;
   }
   *{box-sizing:border-box;}
   #app{
@@ -52,7 +53,7 @@
   }
   .brand{
     font-family:var(--mono);
-    font-size:20px; font-weight:700; letter-spacing:0.02em;
+    font-size:calc(20px * var(--text-scale)); font-weight:700; letter-spacing:0.02em;
     white-space:nowrap;
   }
   .brand .i{color:var(--blue);}
@@ -74,7 +75,7 @@
     color:var(--text);
     border-radius:8px;
     padding:9px 12px 9px 34px;
-    font-size:13px;
+    font-size:calc(13px * var(--text-scale));
     font-family:var(--sans);
     outline:none;
     transition:border-color .15s;
@@ -127,21 +128,32 @@
   }
   .card{
     background:var(--panel);
+    background-size:cover;
+    background-position:center;
     border:1px solid var(--line);
     border-radius:12px;
     padding:14px 14px 10px;
     display:flex; flex-direction:column;
     min-width:0;
   }
+  .card.dragging{opacity:0.4;}
+  .card.drag-over-top{box-shadow:inset 0 3px 0 0 var(--cyan);}
+  .card.drag-over-bottom{box-shadow:inset 0 -3px 0 0 var(--cyan);}
   .card-head{
     display:flex; align-items:center; gap:8px;
     padding-bottom:10px; margin-bottom:8px;
     border-bottom:1px solid var(--line);
   }
   .cat-dot{width:8px; height:8px; border-radius:2px; flex-shrink:0;}
+  .cat-drag-handle{
+    flex-shrink:0; width:12px; text-align:center;
+    color:var(--muted); font-size:12px; letter-spacing:-2px;
+    opacity:0.35; cursor:grab; user-select:none;
+  }
+  .card:hover .cat-drag-handle{opacity:0.75;}
   .cat-name{
     font-family:var(--mono);
-    font-size:14px; font-weight:700;
+    font-size:calc(14px * var(--text-scale)); font-weight:700;
     letter-spacing:0.1em;
     text-transform:uppercase;
     flex:1;
@@ -152,7 +164,7 @@
   }
   .cat-count{
     font-family:var(--mono);
-    font-size:10px;
+    font-size:calc(10px * var(--text-scale));
     color:var(--muted);
     background:rgba(255,255,255,0.04);
     border-radius:10px;
@@ -185,7 +197,7 @@
   .link-fav{width:16px; height:16px; flex-shrink:0; border-radius:3px; opacity:0.9;}
   .link-title{
     flex:1; min-width:0;
-    font-size:14px;
+    font-size:calc(14px * var(--text-scale));
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .link-row a.link-title:hover{color:var(--cyan); text-decoration:underline;}
@@ -205,7 +217,7 @@
     margin-top:6px;
     display:flex; align-items:center; gap:6px;
     font-family:var(--mono);
-    font-size:11px;
+    font-size:calc(11px * var(--text-scale));
     color:var(--muted);
     background:transparent;
     border:1px dashed var(--line);
@@ -290,10 +302,23 @@
   //  CONFIGURACIÓN — rellena estos dos valores con los tuyos de jsonbin.io
   //  (En tu cuenta de jsonbin.io: API Keys → X-MASTER-KEY, y el ID de tu bin)
   // ======================================================================
-  const JSONBIN_ID  = '6a5ce4ebf5f4af5e29a426a0';
-  const JSONBIN_KEY = '$2a$10$5TVPyU/SCQ5s1dNjj8n5QO3FBp6oKqga4en31ZPdMC3kVhAd6FPZS';
+  const JSONBIN_ID  = 'PON_AQUI_TU_BIN_ID';
+  const JSONBIN_KEY = 'PON_AQUI_TU_X_MASTER_KEY';
   // ======================================================================
   const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_ID;
+
+  const FAVICON_B64 = "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAMWklEQVR4nOWbe4xkVZ3HP79zbz1uV/VjmGkcnJGBhDHhEZWd9Yk4OEp0swZZcBJN3EWNmt3NGrMalcQ/UBND8LFZEzU+/iBmF2cDwjpLSFYx2WDCoCPR+GBEUCORIMzSPT09XV3dVfecn3+cc2/denXXdFWDo99Odd2699xTv/fj3DrCQNxi4JMKKMCeyw4fErgO9CrQi0HnQKLB93qouuwAUFQV1KE4f81ZVB2qFnWpfxWPncW5FNSG8348Gu5HQRUN74BT1SWE3wE/MKr/s7p66nuADSQZwPXSKf2kH47gLguw59Ib32mM+RfglSIGVUVx2RduCA2MbyyAAnPjCyDoSzxXqij8xChfWl1dvD0wHxUEMkAABw/GPPBAuufSG/aLib5iTHxI1aEuBdSG2WWw4DYTgAtEbSAAZ1FNcyE4Z70A8rGbCiCzWgUMiIiAqh4z6D82Gqd+DsRAmtFpepl/4aVvfYMx0UNGokMubaXq2sFsJAIxozC/dWiwsuB7/kzh06YQPE+RP1anqqmIvMYhDybJ3HV45uPshiCAwxEPPJDuuezvDhlTuQ/Y6WwrRYgD0xOGdv5rz2foMeki+wVhjOCGeP5iVbXANMb8d0EIURhwi4G73IUvOXyxEN8taEWdtYjEG828OQYRmLlFplnyz0O1PLLyN0SEjwGCMf9Vq+24Ah8LIsMt/ltsar9homhOnU2RjSP8VtHHS58WdcjxRjOOLCGfBUQSC/8BlAAVgL2Xv+3txpSOuDQz+/FRTIP+2HUygVrU+XfUR/veANiVGdSFbJAFQT+PtyMt+s4opKUiEqvln5rNha8YOByh7qOqThGdUIAbpsnu8Janx9w1hjGjPUe9saH/0wYwqijiPgT7qmbP5e5qEXOlT3WTMf1iVspJzWJX9wC6BZKN7Wfey2kiAcGAKmL2J8nKmw2OGzzf2lclbQ3a88rOdrSs2ecs+GmnXugwXIz4FI4nIgRFUMTdaES4Kkw6EfNXLRIdDvKiKLvQXSFqJh7tfO749yaBbmvyMKgK8OpYVS8OGWLsfK892umYe+YI3druqhZ7Y0GYYIwaYCN4ZYtcGIswO26yzRgXyeYuMqAdQeTaLlpFxpgbIIR+V+oS5vhFQilWxXRNJEE4G9zVH8jAOUdqHRIId+owAlFk6JizZ9JIloALXyShicnaDSPeMBVcJryh/G5dEHHfzTooxWwMVWUqqTI3W8c5H0tFlNZ6i2dPLSFZ/g6CaTWbuKzB6eoCs1rAN0AiShwJURRhREjTdFCCGAtjFz1RZFhaOsObDr2CL9z2YZaWVxGB+lTCwz85wTve8zFKcQQo6hxxZLho/0UImhc5mnV9hbZXnaXZXGVxcYGFhWfR9jrVWo1SHGNtuildoyIeL6BocFeHMYYkKbO+niICSVKhXC6F6s3HhXa7xfyuXdx95MvUphKstYgMcLYQRlqtFktLSzz+68f5zv9+lzvvvJOFZ/+f+szMxIRglLBI0fPXn8+7X/lf7p+Kc95fnSrOaVjxcXkJm5WxIiAiGBH/bky3IIJOkiRh7969vPlN1/LFL36W73///3jDG9/IyukljIm6B29VAHkKKhBJTrgOeWXjsojt+lIghMvODRBEN+nOOeI4IkkSqtUqSbVKuVym3W6ztr7O8nKDkyeX2bfvIu655y4Ovv4QqyvLRNH4hatc8OK/zSnv6GCUmsjbiQDWWabrNXa/4Dys9UyKCM1mkyef+gMS0tr6epMXXjDPd+/9T2q1Kaz1i0xRJDy7sMjiwiImilDnmJmZYd++F9FqtWm32xgjtNopszN1fvHILzl0zUFS6zBmvLIgzitgKRrTaAIAnwGMEZZOn+YPTz9DlsPVWUwkTCUVH+QILuG6K25rLTt21Pncv93BrZ++jbmdc6TtNuVSzDXXXM3nP3cbc3NztNuWUhyzvNzgpS+5jIPXvJ777v029Zm5IMgtCqDTtvbyvmklAArGCGfOrHDtoVfz8Y+8lzMrTQRIkiq/OPEYH77508SxyYXS33J0qjuf/hzOWdbWU+6+8xvUajW+/rUvsb6+EkxeiSLlwIED3HfvtwYH0bMTQI/0dDRH6FQLEe20xY65On/10v2cadiQBiNsmuJsihpPeJbqhs/Yqe6MEUrJTo4fP87SUoM4jnHO4Rc5hfn5eXwIGy8Ixt48M46HsVw8XyiUVEOGsyFgORqN1RDla6w210KuF/KFkA2aTlMoAo0xqPNmXypFOKeICKp+jDf7LAqNIQCKGukJhxsuj2SdXTBdQTGRCSnNMyAGb/ZOgOD/AyxABNrtNs6tsNook6Z+SVzTZW688Qbq9SqnTq10Rf0nn3wS0OE6G1UAznUKCsmkmU06VAKdGOBEffmaM1bQihK07j/4cb7A77QAgrXK/Pm7uGT/FUzPzpKmKTPTNa6//nre9773srzczJkXMaytOR489iBiKnnpvWUB5C4gBdJHXhlT1JlQzw8iJAQ23+znQc5f8YiiiOXlNd7zrpt4903/kN9ZrVapVAzLy8383Pp6i927Zzl69Dsc/8Exklp9AgLQNKM1vA3qBoVil1uMAyKK2kHR3Y/wzU0YHeJA//z0BbPV1VVWVnyJ7VOt4YLdszxy4td86F8/iDFRN0lbRKyuWFN3yPLWIAV36OIr6/JRMXkH1wclaD3EFLUMeD6JKpRKJeI4DqWyH2+MEEUQRdBotDhy5G4+dvPNPPXUUyRJzT86GxNBAIMako4fD0InC0RDXUDzjs+E7q9QCGXTqxJFhpMnT7K4sOArwVByN5urPP300/zsZz/l/vvv5+Hjx4nLlYkxD31psEjZsMqwWyLq1D88HeICBAFkx70W4CvBKT7zmdu57dZPMT23izRto05J05T2ehNog6lSm55BlYkxD3kMGKTtEfsBiTqPrgeNcJ3FEB3SNOVzBQtxziEIpVJMpTKLiODC+UkjWEAPs8ESRlkW84WQd4G+8dppibOGqGMp3RWnFs4JYRlNdaw6fxTEAzWnnn3tprNvjNcqgakh2snaa2FTC+jMMZEFz5HQXQn2ZIHugyFQ8X4+0Dw7P4iQfLIBE+YmIMPHbBMGWwAZMZuhYwGqDutsvsxlrcW54q85IFt8sdb2vbqeBD2HiAdH77MoMdRH91IpplqOmJubRQSqZajX6znTvtL0tfvs7CzT02XSFKyFUgSVSoWhbrSNkKnp8wOnW+sqRIS03WLP3r389YErabVTBCGOIxYWFzn24DGMMSCKtY4kqfK6q1+Xt7eqSqUSc+LEozz22KPEcXnsFves6J+qzw92ypHbAV+5tVqtkLPzCyARSa1GsahQVdZWV+jVtokrVKvV55R5AEnqu7a4JpghrA2G1d2uK6q4AWnMPy2if+w25PnN0PVkqJOLz1YLWc52XbeKESQXSueCG6JlMYOfzw7OMJNB3M/rZExQREib62iajrVoI1FEXK1sm2vEk1hW8iiqXkjXmsxcchGVnTt8u3y2SzeqSBTRWlrm9K9+S1QpT4DGfoRng5OTrkSGdmOFC99yLVd9/dahZj0aFDGGhz7wCX5z5Cjleh21k3WHifwirAsiWNtm/pUvoz6/l+bpk0hpa1+jaUoycz4veM0BHr/jW2dvRSNg4gJQ6yhVajz61W+S7N5FdX4nmo7hAqeXeeTfb6dUmZq49gEkqZ03+egigmu1sa11jIm27GCC7/2jUhlTKTOBn8b0YfIuAKCKKZeIquXxw4sATrczC2wTVFH73Dc3Z4uwVvWXCwOcfr6JeB6RGkWfCIXQc1+IP3/IWrPfG5CHCss1fylw/omO/NAo3BPSyzbsDPmThd/3ZLhHgFIydd6PEbk8rG5uy2aJPyE4X5XpE81G6QoDtB18XmQij9rOBbjA6xfgmUa2y0qqtR0PiZiXhwd4f65WYEEi1D3aXJ25Ep5oZX5vnchNqDYYssPyzwB+0xSaoubv4Yk1wk/kHRC1VhZ/iXPvwLuBoWeH5TkOi99FaRS9qdlceJiwi9QUBsTN5tK9OLkBaIjfOZZybluDA7JdcG2n9p1rjVPfxLcAFrpTXwrEzebCUVH7Wqf6IxHJNk5quOFcCJIZrQ7EiEiM05/jOLjWWLqDnq2zg5r0bINxnNR3vh+n/4zI5dmG5HMCkv3qUx9T9KtrjVNfBtbYdPN0B8VAWE3q5/0NKteDvgrYB1S2hfDx0QJ+j/JDFT261ijfB880wrU+5gH+CGVHUkImLy50AAAAAElFTkSuQmCC";
+  function injectFavicon(){
+    try{
+      document.querySelectorAll("link[rel~='icon']").forEach(el => el.remove());
+      const link = document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/png';
+      link.href = 'data:image/png;base64,' + FAVICON_B64;
+      document.head.appendChild(link);
+    }catch(e){ /* entorno sin acceso a head */ }
+  }
+  injectFavicon();
 
   const PALETTE = ['#4d7cff','#5eead4','#f5b942','#f26fa1','#8b7cff','#5ecbf2','#8fd35e','#f2895e'];
 
@@ -500,14 +525,17 @@
 
   let state = null;
   let saveTimer = null;
+  let lastError = '';
   const statusEl = () => document.getElementById('saveStatus');
 
-  function setSaving(on, error){
+  function setSaving(on, error, errorDetail){
     const el = statusEl();
     if(!el) return;
     el.querySelector('.dot').classList.toggle('saving', !!on);
     el.querySelector('.dot').classList.toggle('error', !!error);
-    el.querySelector('span.txt').textContent = error ? 'sin conexión' : (on ? 'guardando…' : 'sincronizado');
+    el.querySelector('span.txt').textContent = error ? 'sin conexión (clic para ver el error)' : (on ? 'guardando…' : 'sincronizado');
+    if(errorDetail) lastError = errorDetail;
+    el.style.cursor = error ? 'pointer' : 'default';
   }
 
   function persist(){
@@ -523,11 +551,15 @@
           },
           body: JSON.stringify(state)
         });
-        if(!res.ok) throw new Error('HTTP ' + res.status);
+        if(!res.ok){
+          let detail = 'HTTP ' + res.status;
+          try{ const body = await res.json(); if(body && body.message) detail += ' — ' + body.message; }catch(e){}
+          throw new Error(detail);
+        }
         setSaving(false);
       }catch(e){
         console.error('Error guardando en JSONBin', e);
-        setSaving(false, true);
+        setSaving(false, true, 'No se pudo GUARDAR: ' + e.message);
       }
     }, 500);
   }
@@ -537,7 +569,11 @@
       const res = await fetch(JSONBIN_URL + '/latest', {
         headers: { 'X-Master-Key': JSONBIN_KEY }
       });
-      if(!res.ok) throw new Error('HTTP ' + res.status);
+      if(!res.ok){
+        let detail = 'HTTP ' + res.status;
+        try{ const body = await res.json(); if(body && body.message) detail += ' — ' + body.message; }catch(e){}
+        throw new Error(detail);
+      }
       const data = await res.json();
       if(data && data.record && Array.isArray(data.record.categories)){
         state = data.record;
@@ -546,7 +582,7 @@
       throw new Error('Respuesta inesperada de JSONBin');
     }catch(e){
       console.error('Error cargando de JSONBin', e);
-      setSaving(false, true);
+      setSaving(false, true, 'No se pudo CARGAR: ' + e.message);
       state = buildSeedState();
     }
   }
@@ -615,9 +651,25 @@
       </div>
       <div class="topbar-actions">
         <div class="status" id="saveStatus"><span class="dot"></span><span class="txt">sincronizado</span></div>
+        <button class="btn ghost" data-action="open-settings" title="Personalizar">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
         <button class="btn" data-action="add-link-global">+ Enlace</button>
       </div>
     </header>`;
+  }
+
+  function cardBgStyle(cat){
+    const bg = cat.bg;
+    if(!bg || bg.type === 'none' || !bg.value) return '';
+    if(bg.type === 'color'){
+      return ` style="background:${esc(bg.value)};"`;
+    }
+    if(bg.type === 'image'){
+      const url = esc(bg.value).replace(/"/g,'&quot;');
+      return ` style="background-image:linear-gradient(rgba(15,17,23,.74),rgba(15,17,23,.74)), url(&quot;${url}&quot;);"`;
+    }
+    return '';
   }
 
   function renderCard(cat, links, draggableEnabled){
@@ -637,11 +689,15 @@
       </div>`).join('');
 
     return `
-    <div class="card" data-cat-id="${cat.id}">
+    <div class="card" data-cat-id="${cat.id}"${cardBgStyle(cat)}>
       <div class="card-head">
+        <span class="cat-drag-handle" draggable="true" title="Arrastrar para reordenar categoría">⠿</span>
         <div class="cat-dot" style="background:${cat.color}"></div>
         <input class="cat-name" data-action="rename-category" data-cat-id="${cat.id}" value="${esc(cat.name)}" />
         <span class="cat-count">${links.length}</span>
+        <button class="icon-btn" data-action="edit-appearance" data-cat-id="${cat.id}" title="Apariencia de la categoría">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.4-1.1-.2-.3-.4-.6-.4-1 0-.8.7-1.4 1.4-1.4H16c3.3 0 6-2.7 6-6 0-4.4-4-8-10-8z"/></svg>
+        </button>
         <button class="icon-btn danger" data-action="delete-category" data-cat-id="${cat.id}" title="Eliminar categoría">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
         </button>
@@ -723,6 +779,121 @@
     });
   }
 
+  function openAppearanceForm(catId){
+    const cat = state.categories.find(c => c.id === catId);
+    if(!cat) return;
+    const bg = cat.bg || { type: 'none', value: '' };
+    openModal(`
+      <h3>Apariencia — ${esc(cat.name)}</h3>
+      <div class="field">
+        <label>Tipo de fondo</label>
+        <select id="ap-type">
+          <option value="none" ${bg.type==='none'?'selected':''}>Predeterminado</option>
+          <option value="color" ${bg.type==='color'?'selected':''}>Color sólido</option>
+          <option value="image" ${bg.type==='image'?'selected':''}>Imagen (por URL)</option>
+        </select>
+      </div>
+      <div class="field" id="ap-color-field" style="${bg.type==='color'?'':'display:none;'}">
+        <label>Color</label>
+        <input id="ap-color" type="color" value="${bg.type==='color' && bg.value ? esc(bg.value) : '#161923'}" style="height:38px; padding:4px;"/>
+      </div>
+      <div class="field" id="ap-image-field" style="${bg.type==='image'?'':'display:none;'}">
+        <label>URL de la imagen</label>
+        <input id="ap-image" value="${bg.type==='image' ? esc(bg.value) : ''}" placeholder="https://..." />
+      </div>
+      <div class="modal-actions">
+        <button class="btn cancel" data-action="close-modal">Cancelar</button>
+        <button class="btn" data-action="save-appearance" data-cat-id="${catId}">Guardar</button>
+      </div>
+    `);
+    const typeSel = document.getElementById('ap-type');
+    typeSel.addEventListener('change', () => {
+      document.getElementById('ap-color-field').style.display = typeSel.value === 'color' ? '' : 'none';
+      document.getElementById('ap-image-field').style.display = typeSel.value === 'image' ? '' : 'none';
+    });
+  }
+
+  const FONT_OPTIONS = {
+    default:   { label: 'Predeterminada (dual)', sans: "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", mono: "'JetBrains Mono','SF Mono',Consolas,monospace" },
+    inter:     { label: 'Inter (moderna)',        sans: "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", mono: "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" },
+    georgia:   { label: 'Serif clásica',          sans: "Georgia,'Times New Roman',serif", mono: "Georgia,'Times New Roman',serif" },
+    courier:   { label: 'Monoespaciada',          sans: "'Courier New',Courier,monospace", mono: "'Courier New',Courier,monospace" },
+    trebuchet: { label: 'Redondeada',             sans: "'Trebuchet MS',sans-serif", mono: "'Trebuchet MS',sans-serif" },
+    jetbrains: { label: 'Técnica',                sans: "'JetBrains Mono','SF Mono',Consolas,monospace", mono: "'JetBrains Mono','SF Mono',Consolas,monospace" }
+  };
+  const SIZE_OPTIONS = { small: { label: 'Pequeño', scale: 0.88 }, medium: { label: 'Medio', scale: 1 }, large: { label: 'Grande', scale: 1.18 } };
+
+  function openSettingsForm(){
+    const s = Object.assign({ fontFamily:'default', fontSize:'medium', textColor:'#e9eaf2', pageBg:{type:'default',value:''} }, state.settings || {});
+    const fontOpts = Object.entries(FONT_OPTIONS).map(([k,v]) => `<option value="${k}" ${s.fontFamily===k?'selected':''}>${esc(v.label)}</option>`).join('');
+    const sizeOpts = Object.entries(SIZE_OPTIONS).map(([k,v]) => `<option value="${k}" ${s.fontSize===k?'selected':''}>${esc(v.label)}</option>`).join('');
+    const pageBg = s.pageBg || { type:'default', value:'' };
+
+    openModal(`
+      <h3>Personalizar iPortal</h3>
+      <div class="field">
+        <label>Tipo de letra</label>
+        <select id="st-font">${fontOpts}</select>
+      </div>
+      <div class="field">
+        <label>Tamaño de texto</label>
+        <select id="st-size">${sizeOpts}</select>
+      </div>
+      <div class="field">
+        <label>Color del texto</label>
+        <input id="st-color" type="color" value="${esc(s.textColor)}" style="height:38px; padding:4px;"/>
+      </div>
+      <div class="field">
+        <label>Fondo de la página</label>
+        <select id="st-bg-type">
+          <option value="default" ${pageBg.type==='default'?'selected':''}>Predeterminado</option>
+          <option value="color" ${pageBg.type==='color'?'selected':''}>Color sólido</option>
+          <option value="image" ${pageBg.type==='image'?'selected':''}>Imagen (por URL)</option>
+        </select>
+      </div>
+      <div class="field" id="st-bgcolor-field" style="${pageBg.type==='color'?'':'display:none;'}">
+        <label>Color de fondo</label>
+        <input id="st-bg-color" type="color" value="${pageBg.type==='color' && pageBg.value ? esc(pageBg.value) : '#07080c'}" style="height:38px; padding:4px;"/>
+      </div>
+      <div class="field" id="st-bgimage-field" style="${pageBg.type==='image'?'':'display:none;'}">
+        <label>URL de la imagen</label>
+        <input id="st-bg-image" value="${pageBg.type==='image' ? esc(pageBg.value) : ''}" placeholder="https://..." />
+      </div>
+      <div class="modal-actions">
+        <button class="btn cancel" data-action="reset-settings">Restablecer</button>
+        <button class="btn cancel" data-action="close-modal">Cancelar</button>
+        <button class="btn" data-action="save-settings">Guardar</button>
+      </div>
+    `);
+    const bgTypeSel = document.getElementById('st-bg-type');
+    bgTypeSel.addEventListener('change', () => {
+      document.getElementById('st-bgcolor-field').style.display = bgTypeSel.value === 'color' ? '' : 'none';
+      document.getElementById('st-bgimage-field').style.display = bgTypeSel.value === 'image' ? '' : 'none';
+    });
+  }
+
+  function applySettings(){
+    const s = Object.assign({ fontFamily:'default', fontSize:'medium', textColor:'#e9eaf2', pageBg:{type:'default',value:''} }, state.settings || {});
+    const root = document.documentElement;
+    const font = FONT_OPTIONS[s.fontFamily] || FONT_OPTIONS.default;
+    root.style.setProperty('--sans', font.sans);
+    root.style.setProperty('--mono', font.mono);
+    root.style.setProperty('--text-scale', (SIZE_OPTIONS[s.fontSize] || SIZE_OPTIONS.medium).scale);
+    root.style.setProperty('--text', s.textColor || '#e9eaf2');
+
+    const pageBg = s.pageBg || { type: 'default', value: '' };
+    const appEl = document.getElementById('app');
+    if(!appEl) return;
+    if(pageBg.type === 'color' && pageBg.value){
+      appEl.style.background = pageBg.value;
+    } else if(pageBg.type === 'image' && pageBg.value){
+      const url = pageBg.value.replace(/'/g, "%27");
+      appEl.style.background = `linear-gradient(rgba(7,8,12,.62),rgba(7,8,12,.62)), url('${url}') center/cover no-repeat`;
+    } else {
+      appEl.style.background = '';
+    }
+  }
+
   // ---------- Event wiring ----------
   function attachEvents(){
     const searchInput = document.getElementById('searchInput');
@@ -749,6 +920,13 @@
         });
       });
     });
+
+    root.querySelectorAll('[data-action="edit-appearance"]').forEach(btn => {
+      btn.addEventListener('click', () => openAppearanceForm(btn.dataset.catId));
+    });
+
+    const settingsBtn = root.querySelector('[data-action="open-settings"]');
+    if(settingsBtn) settingsBtn.addEventListener('click', openSettingsForm);
 
     root.querySelectorAll('[data-action="add-link"]').forEach(btn => {
       btn.addEventListener('click', () => openLinkForm({ catId: btn.dataset.catId, link: null }));
@@ -783,6 +961,21 @@
 
     const addCatCard = root.querySelector('[data-action="add-category"]');
     if(addCatCard) addCatCard.addEventListener('click', openCategoryForm);
+
+    const statusBtn = document.getElementById('saveStatus');
+    if(statusBtn){
+      statusBtn.addEventListener('click', () => {
+        if(!statusBtn.querySelector('.dot').classList.contains('error')) return;
+        openModal(`
+          <h3>Detalle del error</h3>
+          <p class="confirm-text" style="word-break:break-word;">${esc(lastError || 'Error desconocido')}</p>
+          <p class="confirm-text" style="margin-top:10px;">Causas más comunes: la clave X-MASTER-KEY no está bien copiada en el index.html, se han agotado las peticiones gratuitas de JSONBin, o no hay conexión a internet.</p>
+          <div class="modal-actions">
+            <button class="btn cancel" data-action="close-modal">Cerrar</button>
+          </div>
+        `);
+      });
+    }
   }
 
   document.addEventListener('click', (e) => {
@@ -831,10 +1024,55 @@
       persist(); closeModal(); render();
       return;
     }
+
+    const saveAppearance = e.target.closest('[data-action="save-appearance"]');
+    if(saveAppearance){
+      const cat = state.categories.find(c => c.id === saveAppearance.dataset.catId);
+      if(!cat) return;
+      const type = document.getElementById('ap-type').value;
+      if(type === 'color'){
+        cat.bg = { type: 'color', value: document.getElementById('ap-color').value };
+      } else if(type === 'image'){
+        const url = document.getElementById('ap-image').value.trim();
+        cat.bg = url ? { type: 'image', value: url } : { type: 'none', value: '' };
+      } else {
+        cat.bg = { type: 'none', value: '' };
+      }
+      persist(); closeModal(); render();
+      return;
+    }
+
+    const saveSettings = e.target.closest('[data-action="save-settings"]');
+    if(saveSettings){
+      const bgType = document.getElementById('st-bg-type').value;
+      let pageBg = { type: 'default', value: '' };
+      if(bgType === 'color') pageBg = { type: 'color', value: document.getElementById('st-bg-color').value };
+      if(bgType === 'image'){
+        const url = document.getElementById('st-bg-image').value.trim();
+        pageBg = url ? { type: 'image', value: url } : { type: 'default', value: '' };
+      }
+      state.settings = {
+        fontFamily: document.getElementById('st-font').value,
+        fontSize: document.getElementById('st-size').value,
+        textColor: document.getElementById('st-color').value,
+        pageBg
+      };
+      applySettings();
+      persist(); closeModal();
+      return;
+    }
+
+    const resetSettings = e.target.closest('[data-action="reset-settings"]');
+    if(resetSettings){
+      state.settings = { fontFamily:'default', fontSize:'medium', textColor:'#e9eaf2', pageBg:{type:'default',value:''} };
+      applySettings();
+      persist(); closeModal();
+      return;
+    }
   });
 
   // ---------- Drag & drop ----------
-  let dragSource = null; // { catId, linkId }
+  let dragSource = null; // { type:'link', catId, linkId } | { type:'category', catId }
 
   function clearDragOverStyles(){
     document.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(el => {
@@ -844,22 +1082,46 @@
   }
 
   document.addEventListener('dragstart', e => {
+    const catHandle = e.target.closest('.cat-drag-handle');
+    if(catHandle){
+      const card = catHandle.closest('.card');
+      dragSource = { type: 'category', catId: card.dataset.catId };
+      try{ e.dataTransfer.setData('text/plain', card.dataset.catId); }catch(err){}
+      e.dataTransfer.effectAllowed = 'move';
+      requestAnimationFrame(() => card.classList.add('dragging'));
+      return;
+    }
     const row = e.target.closest('.link-row');
     if(!row || row.getAttribute('draggable') !== 'true') return;
-    dragSource = { catId: row.dataset.catId, linkId: row.dataset.linkId };
+    dragSource = { type: 'link', catId: row.dataset.catId, linkId: row.dataset.linkId };
     try{ e.dataTransfer.setData('text/plain', row.dataset.linkId); }catch(err){}
     e.dataTransfer.effectAllowed = 'move';
     requestAnimationFrame(() => row.classList.add('dragging'));
   });
 
   document.addEventListener('dragend', () => {
-    document.querySelectorAll('.link-row.dragging').forEach(r => r.classList.remove('dragging'));
+    document.querySelectorAll('.link-row.dragging, .card.dragging').forEach(r => r.classList.remove('dragging'));
     clearDragOverStyles();
     dragSource = null;
   });
 
   document.addEventListener('dragover', e => {
     if(!dragSource) return;
+
+    if(dragSource.type === 'category'){
+      const card = e.target.closest('.card');
+      if(!card || card.classList.contains('add-category')) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      clearDragOverStyles();
+      if(card.dataset.catId !== dragSource.catId){
+        const rect = card.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < rect.height / 2;
+        card.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+      }
+      return;
+    }
+
     const list = e.target.closest('.link-list');
     if(!list) return;
     e.preventDefault();
@@ -877,6 +1139,31 @@
 
   document.addEventListener('drop', e => {
     if(!dragSource) return;
+
+    if(dragSource.type === 'category'){
+      const card = e.target.closest('.card');
+      if(!card || card.classList.contains('add-category')) return;
+      e.preventDefault();
+      const targetCatId = card.dataset.catId;
+      if(targetCatId === dragSource.catId){ clearDragOverStyles(); dragSource = null; return; }
+
+      const srcIndex = state.categories.findIndex(c => c.id === dragSource.catId);
+      if(srcIndex === -1){ clearDragOverStyles(); dragSource = null; return; }
+      const [moved] = state.categories.splice(srcIndex, 1);
+
+      let targetIndex = state.categories.findIndex(c => c.id === targetCatId);
+      if(targetIndex === -1) targetIndex = state.categories.length;
+      const rect = card.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      state.categories.splice(before ? targetIndex : targetIndex + 1, 0, moved);
+
+      clearDragOverStyles();
+      dragSource = null;
+      persist();
+      render();
+      return;
+    }
+
     const list = e.target.closest('.link-list');
     if(!list) return;
     e.preventDefault();
@@ -908,7 +1195,7 @@
 
   // ---------- Init ----------
   root.innerHTML = '<div class="empty">Cargando iPortal…</div>';
-  loadState().then(render);
+  loadState().then(() => { applySettings(); render(); });
 })();
 </script>
 
