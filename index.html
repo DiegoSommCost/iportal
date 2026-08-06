@@ -194,6 +194,16 @@
     font-size:15px; padding:4px 6px; cursor:pointer; line-height:1;
   }
   .icon-preset-btn:hover{border-color:var(--muted);}
+  .link-warn{flex-shrink:0; font-size:12px; cursor:help;}
+  .check-progress-bar{
+    width:100%; height:6px; border-radius:3px;
+    background:var(--line); overflow:hidden; margin:12px 0 4px;
+  }
+  .check-progress-fill{
+    height:100%; background:var(--blue); width:0%;
+    transition:width .2s;
+  }
+  .check-progress-label{font-family:var(--mono); font-size:11px; color:var(--muted);}
   .trash-item{
     display:flex; align-items:center; gap:8px;
     padding:9px 0; border-bottom:1px solid var(--line);
@@ -612,6 +622,7 @@
 
   let state = null;
   let saveTimer = null;
+  let linkCheckResults = new Map(); // linkId -> 'ok' | 'unreachable' (solo en memoria, no se guarda)
   let lastError = '';
   const statusEl = () => document.getElementById('saveStatus');
 
@@ -768,6 +779,9 @@
         </div>
         <div class="topbar-actions">
           <div class="status" id="saveStatus"><span class="dot"></span><span class="txt">sincronizado</span></div>
+          <button class="btn ghost" data-action="check-links" title="Comprobar enlaces">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          </button>
           <button class="btn ghost" data-action="open-trash" title="Papelera">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
             ${(state.trash || []).length ? `<span class="trash-count">${state.trash.length}</span>` : ''}
@@ -799,11 +813,13 @@
     opts = opts || {};
     const draggableEnabled = opts.draggable !== false;
     const pinned = !!l.pinned;
+    const unreachable = linkCheckResults.get(l.id) === 'unreachable';
     return `
       <div class="link-row" data-link-id="${l.id}" data-cat-id="${catId}">
         ${opts.showHandle === false ? '' : `<span class="drag-handle" draggable="${draggableEnabled}">⠿</span>`}
         <img class="link-fav" src="${faviconFor(l.url)}" alt="" draggable="false" onerror="this.style.visibility='hidden'"/>
         <a class="link-title" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" draggable="false" title="${esc(l.url)}">${esc(l.title)}</a>
+        ${unreachable ? `<span class="link-warn" title="No respondió en la última comprobación">⚠️</span>` : ''}
         <div class="link-actions">
           <button class="icon-btn ${pinned ? 'pin-active' : ''}" data-action="toggle-pin" title="${pinned ? 'Quitar de favoritos' : 'Marcar como favorito'}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="${pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -921,6 +937,105 @@
     if(hours < 24) return `hace ${hours} h`;
     const days = Math.floor(hours / 24);
     return `hace ${days} día${days === 1 ? '' : 's'}`;
+  }
+
+  // ---------- Comprobador de enlaces (mejor esfuerzo, ver limitaciones de CORS) ----------
+  let checkCancelled = false;
+
+  async function checkOneLink(url){
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try{
+      await fetch(url, { mode: 'no-cors', signal: controller.signal, cache: 'no-store' });
+      return 'ok'; // no podemos leer el status real (CORS), pero el host respondió
+    }catch(e){
+      return 'unreachable'; // fallo de red, DNS, timeout o conexión rechazada
+    }finally{
+      clearTimeout(timer);
+    }
+  }
+
+  async function runPool(items, limit, worker, onProgress){
+    let i = 0;
+    let done = 0;
+    async function next(){
+      while(i < items.length){
+        if(checkCancelled) return;
+        const idx = i++;
+        await worker(items[idx]);
+        done++;
+        onProgress(done, items.length);
+      }
+    }
+    const workers = Array.from({ length: Math.min(limit, items.length) }, next);
+    await Promise.all(workers);
+  }
+
+  async function startLinkCheck(){
+    const targets = [];
+    state.categories.forEach(cat => {
+      cat.links.forEach(l => {
+        if(/^https?:\/\//i.test(l.url)) targets.push({ catId: cat.id, catName: cat.name, link: l });
+      });
+    });
+
+    checkCancelled = false;
+    linkCheckResults = new Map();
+
+    openModal(`
+      <h3>Comprobando enlaces…</h3>
+      <p class="confirm-text">Puede tardar un poco. No cierres esta ventana.</p>
+      <div class="check-progress-bar"><div class="check-progress-fill" id="checkFill"></div></div>
+      <div class="check-progress-label" id="checkLabel">0 / ${targets.length}</div>
+      <div class="modal-actions">
+        <button class="btn cancel" id="cancelCheckBtn">Cancelar</button>
+      </div>
+    `);
+    document.getElementById('cancelCheckBtn').addEventListener('click', () => { checkCancelled = true; closeModal(); });
+
+    await runPool(targets, 6, async (item) => {
+      const result = await checkOneLink(item.link.url);
+      linkCheckResults.set(item.link.id, result);
+    }, (done, total) => {
+      const fill = document.getElementById('checkFill');
+      const label = document.getElementById('checkLabel');
+      if(fill) fill.style.width = Math.round((done / total) * 100) + '%';
+      if(label) label.textContent = `${done} / ${total}`;
+    });
+
+    if(checkCancelled) return;
+
+    closeModal();
+    render();
+    openCheckResultsForm(targets);
+  }
+
+  function openCheckResultsForm(targets){
+    const broken = targets.filter(t => linkCheckResults.get(t.link.id) === 'unreachable');
+    const items = broken.map(t => `
+      <div class="trash-item">
+        <div class="ti-info">
+          <div class="ti-title">${esc(t.link.title)}</div>
+          <div class="ti-meta">${esc(t.catName)}</div>
+        </div>
+        <div class="ti-actions">
+          <button data-action="goto-link" data-cat-id="${t.catId}">Ver</button>
+        </div>
+      </div>`).join('');
+
+    openModal(`
+      <h3>Resultado</h3>
+      <p class="confirm-text">
+        ${broken.length === 0
+          ? 'Todos los enlaces comprobados respondieron.'
+          : `${broken.length} de ${targets.length} enlaces no respondieron (marcados con ⚠️ en sus categorías).`}
+      </p>
+      <p class="confirm-text" style="margin-top:6px;">Ten en cuenta: esto detecta dominios caídos o inaccesibles, no páginas que cargan pero muestran un error.</p>
+      ${items}
+      <div class="modal-actions">
+        <button class="btn cancel" data-action="close-modal">Cerrar</button>
+      </div>
+    `);
   }
 
   function openTrashForm(){
@@ -1144,6 +1259,9 @@
     const trashBtn = root.querySelector('[data-action="open-trash"]');
     if(trashBtn) trashBtn.addEventListener('click', openTrashForm);
 
+    const checkBtn = root.querySelector('[data-action="check-links"]');
+    if(checkBtn) checkBtn.addEventListener('click', startLinkCheck);
+
     root.querySelectorAll('[data-action="add-link"]').forEach(btn => {
       btn.addEventListener('click', () => openLinkForm({ catId: btn.dataset.catId, link: null }));
     });
@@ -1216,6 +1334,16 @@
     }
 
     if(e.target.closest('[data-action="close-modal"]')) closeModal();
+
+    const gotoLink = e.target.closest('[data-action="goto-link"]');
+    if(gotoLink){
+      closeModal();
+      setTimeout(() => {
+        const target = document.getElementById('cat-' + gotoLink.dataset.catId);
+        if(target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
+      return;
+    }
 
     const saveCat = e.target.closest('[data-action="save-category"]');
     if(saveCat){
