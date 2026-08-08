@@ -6,7 +6,7 @@
 <title>iPortal</title>
 <meta name="description" content="iPortal — tu lanzadera personal de enlaces" />
 <meta name="theme-color" content="#07080c" />
-<link rel="icon" type="image/x-icon" href="favicon.ico" />
+<link rel="icon" type="image/x-icon" href="favicon2.ico" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <link rel="manifest" href="manifest.json" />
 </head>
@@ -154,17 +154,18 @@
 
   /* ---- Grid ---- */
   .grid{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:18px;
+    column-count:2;
+    column-gap:18px;
     padding:22px 24px;
     max-width:1200px;
     margin:0 auto;
   }
   @media (max-width:760px){
-    .grid{grid-template-columns:1fr;}
+    .grid{column-count:1;}
   }
   .card{
+    break-inside:avoid;
+    margin-bottom:18px;
     background:var(--panel);
     background-size:cover;
     background-position:center;
@@ -178,7 +179,7 @@
   .card.dragging{opacity:0.4;}
   .card.drag-over-top{box-shadow:inset 0 3px 0 0 var(--cyan);}
   .card.drag-over-bottom{box-shadow:inset 0 -3px 0 0 var(--cyan);}
-  .card.favorites-card{grid-column:1 / -1; border-color:var(--amber);}
+  .card.favorites-card{column-span:all; border-color:var(--amber);}
   .icon-btn.pin-active{color:var(--amber);}
   .icon-btn.pin-active:hover{color:var(--amber);}
   .card-head{
@@ -246,6 +247,16 @@
   .icon-btn.danger:hover{color:var(--danger);}
 
   .link-list{display:flex; flex-direction:column; gap:1px;}
+  .link-list.favorites-flow{flex-direction:row; flex-wrap:wrap; gap:8px;}
+  .link-row.compact{
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:6px 9px;
+    width:auto;
+  }
+  .link-row.compact .link-title{flex:none; max-width:170px;}
+  .link-row.compact:hover{background:var(--panel-hover);}
   .link-row{
     display:flex; align-items:center; gap:9px;
     padding:8px 7px;
@@ -377,7 +388,7 @@
   @media (max-width:520px){
     .topbar{padding:12px 14px 8px;}
     .cat-nav{padding:0 14px 12px;}
-    .grid{padding:14px; gap:12px;}
+    .grid{padding:14px; column-gap:12px;}
     .brand{font-size:17px;}
     .back-to-top{bottom:18px; right:18px; width:40px; height:40px;}
   }
@@ -389,8 +400,8 @@
   //  CONFIGURACIÓN — rellena estos dos valores con los tuyos de jsonbin.io
   //  (En tu cuenta de jsonbin.io: API Keys → X-MASTER-KEY, y el ID de tu bin)
   // ======================================================================
-  const JSONBIN_ID  = '6a5ce4ebf5f4af5e29a426a0';
-  const JSONBIN_KEY = '$2a$10$5TVPyU/SCQ5s1dNjj8n5QO3FBp6oKqga4en31ZPdMC3kVhAd6FPZS';
+  const JSONBIN_ID  = 'PON_AQUI_TU_BIN_ID';
+  const JSONBIN_KEY = 'PON_AQUI_TU_X_MASTER_KEY';
   // ======================================================================
   const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_ID;
 
@@ -699,7 +710,7 @@
   function renderFavoritesSection(){
     const pinned = [];
     state.categories.forEach(cat => {
-      cat.links.forEach(l => { if(l.pinned) pinned.push(renderLinkRow(l, cat.id, { showHandle: false })); });
+      cat.links.forEach(l => { if(l.pinned) pinned.push(renderLinkRow(l, cat.id, { showHandle: false, compact: true })); });
     });
     if(pinned.length === 0) return '';
     return `
@@ -709,7 +720,7 @@
         <input class="cat-name" value="Favoritos" readonly style="cursor:default;" />
         <span class="cat-count">${pinned.length}</span>
       </div>
-      <div class="link-list">${pinned.join('')}</div>
+      <div class="link-list favorites-flow">${pinned.join('')}</div>
     </div>`;
   }
 
@@ -801,7 +812,7 @@
     const pinned = !!l.pinned;
     const tooltip = l.description ? `${l.description}\n${l.url}` : l.url;
     return `
-      <div class="link-row" data-link-id="${l.id}" data-cat-id="${catId}">
+      <div class="link-row${opts.compact ? ' compact' : ''}" data-link-id="${l.id}" data-cat-id="${catId}">
         ${opts.showHandle === false ? '' : `<span class="drag-handle" draggable="${draggableEnabled}">⠿</span>`}
         <img class="link-fav" src="${faviconFor(l.url)}" alt="" draggable="false" onerror="this.style.visibility='hidden'"/>
         <a class="link-title" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" draggable="false" title="${esc(tooltip)}">${esc(l.title)}</a>
