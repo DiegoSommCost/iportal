@@ -9,6 +9,8 @@
 <link rel="icon" type="image/x-icon" href="favicon2.ico" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <link rel="manifest" href="manifest.json" />
+<link rel="preconnect" href="https://www.google.com" />
+<link rel="preconnect" href="https://api.jsonbin.io" />
 </head>
 <body style="margin:0;">
 <div id="app"></div>
@@ -79,7 +81,27 @@
     transition:color .15s, border-color .15s;
   }
   .cat-nav-pill:hover{color:var(--text); border-color:var(--muted);}
+  .cat-nav-pill{cursor:grab;}
+  .cat-nav-pill.dragging{opacity:0.35;}
+  .cat-nav-pill.nav-drag-over-left{box-shadow:inset 3px 0 0 0 var(--cyan);}
+  .cat-nav-pill.nav-drag-over-right{box-shadow:inset -3px 0 0 0 var(--cyan);}
   .cat-nav-dot{width:6px; height:6px; border-radius:50%; flex-shrink:0;}
+
+  .fav-bar-wrap{display:flex; align-items:flex-start; gap:8px; padding:0 24px 10px;}
+  .fav-toggle{
+    flex-shrink:0;
+    display:flex; align-items:center; gap:4px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--amber);
+    border-radius:20px;
+    padding:5px 10px;
+    font-size:calc(11px * var(--text-scale));
+    cursor:pointer;
+  }
+  .fav-toggle:hover{border-color:var(--amber);}
+  .fav-toggle .cat-count{margin-left:2px;}
+  .fav-bar{display:flex; flex-wrap:wrap; gap:5px; flex:1; min-width:0;}
   .brand{
     font-family:var(--mono);
     font-size:calc(20px * var(--text-scale)); font-weight:700; letter-spacing:0.02em;
@@ -171,7 +193,7 @@
     background-position:center;
     border:1px solid var(--line);
     border-radius:12px;
-    padding:14px 14px 10px;
+    padding:12px 12px 8px;
     display:flex; flex-direction:column;
     min-width:0;
     scroll-margin-top:118px;
@@ -179,7 +201,6 @@
   .card.dragging{opacity:0.4;}
   .card.drag-over-top{box-shadow:inset 0 3px 0 0 var(--cyan);}
   .card.drag-over-bottom{box-shadow:inset 0 -3px 0 0 var(--cyan);}
-  .card.favorites-card{column-span:all; border-color:var(--amber);}
   .icon-btn.pin-active{color:var(--amber);}
   .icon-btn.pin-active:hover{color:var(--amber);}
   .card-head{
@@ -246,21 +267,26 @@
   .icon-btn:hover{color:var(--text); background:rgba(255,255,255,0.06);}
   .icon-btn.danger:hover{color:var(--danger);}
 
-  .link-list{display:flex; flex-direction:column; gap:1px;}
-  .link-list.favorites-flow{flex-direction:row; flex-wrap:wrap; gap:8px;}
+  .link-list.is-collapsed .link-row:last-child{
+    mask-image:linear-gradient(to bottom, black 15%, transparent 95%);
+    -webkit-mask-image:linear-gradient(to bottom, black 15%, transparent 95%);
+    pointer-events:none;
+  }
+  .link-list{display:flex; flex-direction:column; gap:0px;}
+  .link-list.favorites-flow{flex-direction:row; flex-wrap:wrap; gap:5px;}
   .link-row.compact{
     background:var(--bg);
     border:1px solid var(--line);
-    border-radius:8px;
-    padding:6px 9px;
+    border-radius:7px;
+    padding:3px 7px;
     width:auto;
   }
-  .link-row.compact .link-title{flex:none; max-width:170px;}
+  .link-row.compact .link-title{flex:none; max-width:150px; font-size:calc(12.5px * var(--text-scale));}
   .link-row.compact:hover{background:var(--panel-hover);}
   .link-row{
-    display:flex; align-items:center; gap:9px;
-    padding:8px 7px;
-    border-radius:7px;
+    display:flex; align-items:center; gap:8px;
+    padding:4px 6px;
+    border-radius:6px;
     background:transparent;
   }
   .link-row:hover{background:var(--panel-hover);}
@@ -303,6 +329,27 @@
     transition:color .15s, border-color .15s;
   }
   .add-link-btn:hover{color:var(--cyan); border-color:var(--cyan);}
+  .card-footer-actions{display:flex; gap:6px; margin-top:6px;}
+  .card-footer-actions .add-link-btn{margin-top:0; flex:1;}
+
+  .subcat-block{
+    margin-top:10px;
+    padding-left:10px;
+    border-left:2px solid var(--line);
+  }
+  .subcat-head{
+    display:flex; align-items:center; gap:6px;
+    padding:2px 0 4px;
+  }
+  .subcat-name{
+    font-family:var(--mono);
+    font-size:calc(11px * var(--text-scale));
+    font-weight:700;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    flex:1;
+  }
 
   .card.add-category{
     align-items:center; justify-content:center;
@@ -360,6 +407,13 @@
     outline:none;
   }
   .field input:focus, .field select:focus{border-color:var(--blue);}
+  .palette-row{display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;}
+  .palette-swatch{
+    width:30px; height:30px; border-radius:50%;
+    border:2px solid transparent; cursor:pointer; padding:0;
+    box-shadow:0 0 0 1px var(--line);
+  }
+  .palette-swatch.selected{border-color:var(--text);}
   .modal-actions{display:flex; gap:8px; margin-top:18px; justify-content:flex-end;}
   .modal-actions .btn.cancel{background:transparent; color:var(--muted); border:1px solid var(--line);}
   .modal-actions .btn.danger-fill{background:var(--danger); color:#1a0a0a;}
@@ -400,8 +454,8 @@
   //  CONFIGURACIÓN — rellena estos dos valores con los tuyos de jsonbin.io
   //  (En tu cuenta de jsonbin.io: API Keys → X-MASTER-KEY, y el ID de tu bin)
   // ======================================================================
-  const JSONBIN_ID  = '6a5ce4ebf5f4af5e29a426a0';
-  const JSONBIN_KEY = '$2a$10$5TVPyU/SCQ5s1dNjj8n5QO3FBp6oKqga4en31ZPdMC3kVhAd6FPZS';
+  const JSONBIN_ID  = 'PON_AQUI_TU_BIN_ID';
+  const JSONBIN_KEY = 'PON_AQUI_TU_X_MASTER_KEY';
   // ======================================================================
   const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_ID;
 
@@ -610,6 +664,16 @@
 
   function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
 
+  function findLinkContext(catId, subcatId, linkId){
+    const cat = state.categories.find(c => c.id === catId);
+    if(!cat) return null;
+    const arr = subcatId ? (cat.subcategories || []).find(s => s.id === subcatId)?.links : cat.links;
+    if(!arr) return null;
+    const link = arr.find(l => l.id === linkId);
+    if(!link) return null;
+    return { cat, arr, link };
+  }
+
   function buildSeedState(){
     return {
       categories: SEED.map((cat,i) => ({
@@ -707,20 +771,21 @@
   // ---------- Rendering ----------
   const root = document.getElementById('app');
 
-  function renderFavoritesSection(){
+  function renderFavoritesBar(){
     const pinned = [];
     state.categories.forEach(cat => {
       cat.links.forEach(l => { if(l.pinned) pinned.push(renderLinkRow(l, cat.id, { showHandle: false, compact: true })); });
     });
     if(pinned.length === 0) return '';
+    const open = state.settings?.favBarOpen !== false;
     return `
-    <div class="card favorites-card" id="cat-favorites">
-      <div class="card-head">
-        <span class="cat-icon">⭐</span>
-        <input class="cat-name" value="Favoritos" readonly style="cursor:default;" />
+    <div class="fav-bar-wrap">
+      <button class="fav-toggle" data-action="toggle-favbar" title="${open ? 'Ocultar favoritos' : 'Mostrar favoritos'}">
+        ⭐
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="transform:rotate(${open ? '0' : '-90'}deg); transition:transform .15s;"><path d="m6 9 6 6 6-6"/></svg>
         <span class="cat-count">${pinned.length}</span>
-      </div>
-      <div class="link-list favorites-flow">${pinned.join('')}</div>
+      </button>
+      ${open ? `<div class="fav-bar">${pinned.join('')}</div>` : ''}
     </div>`;
   }
 
@@ -731,7 +796,6 @@
     html += renderTopbar(query);
     html += '<main class="grid" id="grid">';
 
-    if(!query) html += renderFavoritesSection();
 
     const cats = state.categories;
     let anyVisible = false;
@@ -743,7 +807,7 @@
         : cat.links;
       if(query && filteredLinks.length === 0) return;
       anyVisible = true;
-      html += renderCard(cat, filteredLinks, draggableEnabled);
+      html += renderCard(cat, filteredLinks, draggableEnabled, !query);
     });
 
     html += `<div class="card add-category" data-action="add-category">
@@ -765,7 +829,7 @@
 
   function renderTopbar(query){
     const navPills = state.categories.map(c => `
-      <button class="cat-nav-pill" data-scroll-to="cat-${c.id}">
+      <button class="cat-nav-pill" draggable="true" data-cat-id="${c.id}" data-scroll-to="cat-${c.id}">
         ${c.icon ? `<span>${esc(c.icon)}</span>` : `<span class="cat-nav-dot" style="background:${c.color}"></span>`}${esc(c.name)}
       </button>`).join('');
 
@@ -789,7 +853,8 @@
           <button class="btn" data-action="add-link-global">+ Enlace</button>
         </div>
       </header>
-      ${state.categories.length ? `<nav class="cat-nav">${navPills}</nav>` : ''}
+      ${state.categories.length ? `<nav class="cat-nav" id="catNav">${navPills}</nav>` : ''}
+      ${renderFavoritesBar()}
     </div>`;
   }
 
@@ -812,9 +877,9 @@
     const pinned = !!l.pinned;
     const tooltip = l.description ? `${l.description}\n${l.url}` : l.url;
     return `
-      <div class="link-row${opts.compact ? ' compact' : ''}" data-link-id="${l.id}" data-cat-id="${catId}">
+      <div class="link-row${opts.compact ? ' compact' : ''}" data-link-id="${l.id}" data-cat-id="${catId}" data-subcat-id="${opts.subcatId || ''}">
         ${opts.showHandle === false ? '' : `<span class="drag-handle" draggable="${draggableEnabled}">⠿</span>`}
-        <img class="link-fav" src="${faviconFor(l.url)}" alt="" draggable="false" onerror="this.style.visibility='hidden'"/>
+        <img class="link-fav" src="${faviconFor(l.url)}" alt="" draggable="false" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'"/>
         <a class="link-title" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" draggable="false" title="${esc(tooltip)}">${esc(l.title)}</a>
         <div class="link-actions">
           <button class="icon-btn ${pinned ? 'pin-active' : ''}" data-action="toggle-pin" title="${pinned ? 'Quitar de favoritos' : 'Marcar como favorito'}">
@@ -830,8 +895,11 @@
       </div>`;
   }
 
-  function renderCard(cat, links, draggableEnabled){
-    const rows = links.map(l => renderLinkRow(l, cat.id, { draggable: draggableEnabled })).join('');
+  function renderCard(cat, links, draggableEnabled, allowCollapse){
+    const isCollapsed = !!(allowCollapse && cat.collapsed && links.length > 2);
+    const displayLinks = isCollapsed ? links.slice(0, 3) : links;
+    const rows = displayLinks.map(l => renderLinkRow(l, cat.id, { draggable: draggableEnabled && !isCollapsed })).join('');
+    const hiddenCount = links.length - displayLinks.length;
 
     return `
     <div class="card" id="cat-${cat.id}" data-cat-id="${cat.id}"${cardBgStyle(cat)}>
@@ -840,6 +908,10 @@
         ${cat.icon ? `<span class="cat-icon" title="${esc(cat.icon)}">${esc(cat.icon)}</span>` : `<div class="cat-dot" style="background:${cat.color}"></div>`}
         <input class="cat-name" data-action="rename-category" data-cat-id="${cat.id}" value="${esc(cat.name)}" />
         <span class="cat-count">${links.length}</span>
+        ${links.length > 2 ? `
+        <button class="icon-btn" data-action="toggle-collapse" data-cat-id="${cat.id}" title="${cat.collapsed ? 'Expandir' : 'Colapsar'}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(${cat.collapsed ? '-90' : '0'}deg); transition:transform .15s;"><path d="m6 9 6 6 6-6"/></svg>
+        </button>` : ''}
         <button class="icon-btn" data-action="edit-appearance" data-cat-id="${cat.id}" title="Apariencia de la categoría">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.4-1.1-.2-.3-.4-.6-.4-1 0-.8.7-1.4 1.4-1.4H16c3.3 0 6-2.7 6-6 0-4.4-4-8-10-8z"/></svg>
         </button>
@@ -847,8 +919,29 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
         </button>
       </div>
-      <div class="link-list" data-cat-id="${cat.id}">${rows || '<div style="color:var(--muted);font-size:12px;padding:8px 6px;">Sin enlaces</div>'}</div>
-      <button class="add-link-btn" data-action="add-link" data-cat-id="${cat.id}">+ añadir enlace</button>
+      <div class="link-list${isCollapsed ? ' is-collapsed' : ''}" data-cat-id="${cat.id}" data-subcat-id="">${rows || (cat.links.length === 0 ? '<div style="color:var(--muted);font-size:12px;padding:8px 6px;">Sin enlaces</div>' : '')}</div>
+      ${!isCollapsed ? (cat.subcategories || []).map(sub => renderSubcategoryBlock(cat, sub, draggableEnabled)).join('') : ''}
+      ${isCollapsed
+        ? `<button class="add-link-btn" data-action="toggle-collapse" data-cat-id="${cat.id}">+ ${hiddenCount} más… (mostrar todo)</button>`
+        : `<div class="card-footer-actions">
+            <button class="add-link-btn" data-action="add-link" data-cat-id="${cat.id}">+ enlace</button>
+            <button class="add-link-btn" data-action="add-subcategory" data-cat-id="${cat.id}">+ subcategoría</button>
+          </div>`}
+    </div>`;
+  }
+
+  function renderSubcategoryBlock(cat, sub, draggableEnabled){
+    const rows = sub.links.map(l => renderLinkRow(l, cat.id, { draggable: draggableEnabled, subcatId: sub.id })).join('');
+    return `
+    <div class="subcat-block">
+      <div class="subcat-head">
+        <span class="subcat-name">${esc(sub.name)}</span>
+        <span class="cat-count">${sub.links.length}</span>
+        <button class="icon-btn danger" data-action="delete-subcategory" data-cat-id="${cat.id}" data-subcat-id="${sub.id}" title="Eliminar subcategoría">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="link-list" data-cat-id="${cat.id}" data-subcat-id="${sub.id}">${rows || '<div style="color:var(--muted);font-size:11px;padding:6px;">Sin enlaces</div>'}</div>
     </div>`;
   }
 
@@ -866,7 +959,15 @@
     if(o) o.remove();
   }
 
-  function openLinkForm({catId, link}){
+  function subcatOptionsFor(catId, selectedSubcatId){
+    const cat = state.categories.find(c => c.id === catId);
+    const subs = cat?.subcategories || [];
+    let opts = `<option value="" ${!selectedSubcatId ? 'selected' : ''}>— Directamente en la categoría —</option>`;
+    opts += subs.map(s => `<option value="${s.id}" ${s.id === selectedSubcatId ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
+    return opts;
+  }
+
+  function openLinkForm({catId, subcatId, link}){
     const isEdit = !!link;
     const catOptions = state.categories.map(c =>
       `<option value="${c.id}" ${c.id === catId ? 'selected' : ''}>${esc(c.name)}</option>`
@@ -890,11 +991,18 @@
         <label>Categoría</label>
         <select id="f-cat">${catOptions}</select>
       </div>
+      <div class="field">
+        <label>Subcategoría (opcional)</label>
+        <select id="f-subcat">${subcatOptionsFor(catId, subcatId)}</select>
+      </div>
       <div class="modal-actions">
         <button class="btn cancel" data-action="close-modal">Cancelar</button>
         <button class="btn" data-action="save-link" data-link-id="${isEdit ? link.id : ''}">Guardar</button>
       </div>
     `);
+    document.getElementById('f-cat').addEventListener('change', (e) => {
+      document.getElementById('f-subcat').innerHTML = subcatOptionsFor(e.target.value, '');
+    });
     setTimeout(() => document.getElementById('f-title')?.focus(), 30);
   }
 
@@ -911,6 +1019,21 @@
       </div>
     `);
     setTimeout(() => document.getElementById('f-cat-name')?.focus(), 30);
+  }
+
+  function openSubcategoryForm(catId){
+    openModal(`
+      <h3>Nueva subcategoría</h3>
+      <div class="field">
+        <label>Nombre</label>
+        <input id="f-subcat-name" placeholder="Ej. Bancos" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn cancel" data-action="close-modal">Cancelar</button>
+        <button class="btn" data-action="save-subcategory" data-cat-id="${catId}">Crear</button>
+      </div>
+    `);
+    setTimeout(() => document.getElementById('f-subcat-name')?.focus(), 30);
   }
 
   function openConfirm(text, onConfirm){
@@ -942,10 +1065,17 @@
   function openTrashForm(){
     const trash = state.trash || [];
     const items = trash.map((item, idx) => {
-      const title = item.type === 'link' ? item.link.title : `Categoría: ${item.category.name}`;
-      const meta = item.type === 'link'
-        ? `de "${esc(item.catName || '')}" · ${timeAgo(item.deletedAt)}`
-        : `${item.category.links.length} enlaces · ${timeAgo(item.deletedAt)}`;
+      let title, meta;
+      if(item.type === 'link'){
+        title = item.link.title;
+        meta = `de "${esc(item.catName || '')}" · ${timeAgo(item.deletedAt)}`;
+      } else if(item.type === 'subcategory'){
+        title = `Subcategoría: ${item.subcategory.name}`;
+        meta = `de "${esc(item.catName || '')}" · ${item.subcategory.links.length} enlaces · ${timeAgo(item.deletedAt)}`;
+      } else {
+        title = `Categoría: ${item.category.name}`;
+        meta = `${item.category.links.length} enlaces · ${timeAgo(item.deletedAt)}`;
+      }
       return `
         <div class="trash-item">
           <div class="ti-info">
@@ -1030,11 +1160,23 @@
   };
   const THEME_DEFAULT_TEXTS = [THEMES.dark.defaultText, THEMES.light.defaultText];
 
+  const PALETTES = {
+    azul:    { label: 'Azul',    c1:'#4d7cff', c2:'#5eead4' },
+    ocre:    { label: 'Ocre',    c1:'#c9902c', c2:'#eac877' },
+    rojos:   { label: 'Rojos',   c1:'#e0524f', c2:'#ff9d8a' },
+    verdes:  { label: 'Verdes',  c1:'#3fae6a', c2:'#8be6a8' },
+    morados: { label: 'Morados', c1:'#8b5cf6', c2:'#c9b6fb' },
+    rosas:   { label: 'Rosas',   c1:'#e0559a', c2:'#ffb0d6' }
+  };
+
   function openSettingsForm(){
-    const s = Object.assign({ fontFamily:'default', fontSize:'medium', textColor:'#e9eaf2', theme:'dark', pageBg:{type:'default',value:''} }, state.settings || {});
+    const s = Object.assign({ fontFamily:'default', fontSize:'medium', textColor:'#e9eaf2', theme:'dark', colorPalette:'azul', pageBg:{type:'default',value:''} }, state.settings || {});
     const fontOpts = Object.entries(FONT_OPTIONS).map(([k,v]) => `<option value="${k}" ${s.fontFamily===k?'selected':''}>${esc(v.label)}</option>`).join('');
     const sizeOpts = Object.entries(SIZE_OPTIONS).map(([k,v]) => `<option value="${k}" ${s.fontSize===k?'selected':''}>${esc(v.label)}</option>`).join('');
     const themeOpts = Object.entries(THEMES).map(([k,v]) => `<option value="${k}" ${s.theme===k?'selected':''}>${esc(v.label)}</option>`).join('');
+    const paletteSwatches = Object.entries(PALETTES).map(([k,v]) => `
+      <button type="button" class="palette-swatch ${s.colorPalette===k?'selected':''}" data-palette="${k}" title="${esc(v.label)}" style="background:linear-gradient(135deg, ${v.c1}, ${v.c2});"></button>
+    `).join('');
     const pageBg = s.pageBg || { type:'default', value:'' };
 
     openModal(`
@@ -1042,6 +1184,11 @@
       <div class="field">
         <label>Tema</label>
         <select id="st-theme">${themeOpts}</select>
+      </div>
+      <div class="field">
+        <label>Paleta de color</label>
+        <div class="palette-row">${paletteSwatches}</div>
+        <input type="hidden" id="st-palette" value="${esc(s.colorPalette)}" />
       </div>
       <div class="field">
         <label>Tipo de letra</label>
@@ -1077,6 +1224,13 @@
         <button class="btn" data-action="save-settings">Guardar</button>
       </div>
     `);
+    document.querySelectorAll('.palette-swatch').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('st-palette').value = btn.dataset.palette;
+        document.querySelectorAll('.palette-swatch').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
     const bgTypeSel = document.getElementById('st-bg-type');
     bgTypeSel.addEventListener('change', () => {
       document.getElementById('st-bgcolor-field').style.display = bgTypeSel.value === 'color' ? '' : 'none';
@@ -1106,6 +1260,10 @@
     root.style.setProperty('--panel-hover', theme.panelHover);
     root.style.setProperty('--line', theme.line);
     root.style.setProperty('--muted', theme.muted);
+
+    const palette = PALETTES[s.colorPalette] || PALETTES.azul;
+    root.style.setProperty('--blue', palette.c1);
+    root.style.setProperty('--cyan', palette.c2);
 
     const pageBg = s.pageBg || { type: 'default', value: '' };
     const appEl = document.getElementById('app');
@@ -1173,19 +1331,17 @@
     root.querySelectorAll('[data-action="edit-link"]').forEach(btn => {
       btn.addEventListener('click', () => {
         const row = btn.closest('.link-row');
-        const cat = state.categories.find(c => c.id === row.dataset.catId);
-        const link = cat?.links.find(l => l.id === row.dataset.linkId);
-        if(link) openLinkForm({ catId: cat.id, link });
+        const ctx = findLinkContext(row.dataset.catId, row.dataset.subcatId, row.dataset.linkId);
+        if(ctx) openLinkForm({ catId: ctx.cat.id, subcatId: row.dataset.subcatId || '', link: ctx.link });
       });
     });
 
     root.querySelectorAll('[data-action="toggle-pin"]').forEach(btn => {
       btn.addEventListener('click', () => {
         const row = btn.closest('.link-row');
-        const cat = state.categories.find(c => c.id === row.dataset.catId);
-        const link = cat?.links.find(l => l.id === row.dataset.linkId);
-        if(!link) return;
-        link.pinned = !link.pinned;
+        const ctx = findLinkContext(row.dataset.catId, row.dataset.subcatId, row.dataset.linkId);
+        if(!ctx) return;
+        ctx.link.pinned = !ctx.link.pinned;
         persist(); render();
       });
     });
@@ -1193,13 +1349,13 @@
     root.querySelectorAll('[data-action="delete-link"]').forEach(btn => {
       btn.addEventListener('click', () => {
         const row = btn.closest('.link-row');
-        const cat = state.categories.find(c => c.id === row.dataset.catId);
-        const link = cat?.links.find(l => l.id === row.dataset.linkId);
-        if(!link) return;
-        openConfirm(`Se eliminará el enlace "${link.title}". Podrás recuperarlo desde la papelera.`, () => {
-          cat.links = cat.links.filter(l => l.id !== link.id);
+        const ctx = findLinkContext(row.dataset.catId, row.dataset.subcatId, row.dataset.linkId);
+        if(!ctx) return;
+        openConfirm(`Se eliminará el enlace "${ctx.link.title}". Podrás recuperarlo desde la papelera.`, () => {
+          const idx = ctx.arr.findIndex(l => l.id === ctx.link.id);
+          if(idx !== -1) ctx.arr.splice(idx, 1);
           state.trash = state.trash || [];
-          state.trash.unshift({ type: 'link', catId: cat.id, catName: cat.name, link, deletedAt: Date.now() });
+          state.trash.unshift({ type: 'link', catId: ctx.cat.id, catName: ctx.cat.name, link: ctx.link, deletedAt: Date.now() });
           persist(); render();
         });
       });
@@ -1207,6 +1363,10 @@
 
     const addCatCard = root.querySelector('[data-action="add-category"]');
     if(addCatCard) addCatCard.addEventListener('click', openCategoryForm);
+
+    root.querySelectorAll('[data-action="add-subcategory"]').forEach(btn => {
+      btn.addEventListener('click', () => openSubcategoryForm(btn.dataset.catId));
+    });
 
     const statusBtn = document.getElementById('saveStatus');
     if(statusBtn){
@@ -1225,6 +1385,23 @@
   }
 
   document.addEventListener('click', (e) => {
+    const toggleCollapse = e.target.closest('[data-action="toggle-collapse"]');
+    if(toggleCollapse){
+      const cat = state.categories.find(c => c.id === toggleCollapse.dataset.catId);
+      if(!cat) return;
+      cat.collapsed = !cat.collapsed;
+      persist(); render();
+      return;
+    }
+
+    const favToggle = e.target.closest('[data-action="toggle-favbar"]');
+    if(favToggle){
+      state.settings = state.settings || {};
+      state.settings.favBarOpen = !(state.settings.favBarOpen !== false);
+      persist(); render();
+      return;
+    }
+
     const navPill = e.target.closest('.cat-nav-pill');
     if(navPill){
       const target = document.getElementById(navPill.dataset.scrollTo);
@@ -1248,32 +1425,69 @@
       return;
     }
 
+    const saveSubcat = e.target.closest('[data-action="save-subcategory"]');
+    if(saveSubcat){
+      const name = document.getElementById('f-subcat-name').value.trim();
+      if(!name) return;
+      const cat = state.categories.find(c => c.id === saveSubcat.dataset.catId);
+      if(!cat) return;
+      cat.subcategories = cat.subcategories || [];
+      cat.subcategories.push({ id: uid(), name, links: [] });
+      persist(); closeModal(); render();
+      return;
+    }
+
+    const deleteSubcat = e.target.closest('[data-action="delete-subcategory"]');
+    if(deleteSubcat){
+      const cat = state.categories.find(c => c.id === deleteSubcat.dataset.catId);
+      const sub = cat?.subcategories?.find(s => s.id === deleteSubcat.dataset.subcatId);
+      if(!cat || !sub) return;
+      openConfirm(`Se eliminará la subcategoría "${sub.name}" y sus ${sub.links.length} enlaces. Podrás recuperarla desde la papelera.`, () => {
+        cat.subcategories = cat.subcategories.filter(s => s.id !== sub.id);
+        state.trash = state.trash || [];
+        state.trash.unshift({ type: 'subcategory', catId: cat.id, catName: cat.name, subcategory: sub, deletedAt: Date.now() });
+        persist(); render();
+      });
+      return;
+    }
+
     const saveLink = e.target.closest('[data-action="save-link"]');
     if(saveLink){
       const title = document.getElementById('f-title').value.trim();
       let url = document.getElementById('f-url').value.trim();
       const description = document.getElementById('f-desc').value.trim();
       const catId = document.getElementById('f-cat').value;
+      const subcatId = document.getElementById('f-subcat')?.value || '';
       if(!title || !url) return;
       if(!/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(url)) url = 'https://' + url;
 
+      const targetCat = state.categories.find(c => c.id === catId);
+      if(!targetCat) return;
+      const targetArr = subcatId ? (targetCat.subcategories || []).find(s => s.id === subcatId)?.links : targetCat.links;
+      if(!targetArr) return;
+
       const linkId = saveLink.dataset.linkId;
       if(linkId){
+        let found = null;
         for(const c of state.categories){
-          const existing = c.links.find(l => l.id === linkId);
-          if(existing){
-            existing.title = title; existing.url = url; existing.description = description;
-            if(c.id !== catId){
-              c.links = c.links.filter(l => l.id !== linkId);
-              const target = state.categories.find(cc => cc.id === catId);
-              target.links.push(existing);
-            }
-            break;
+          const inRoot = c.links.find(l => l.id === linkId);
+          if(inRoot){ found = { arr: c.links, link: inRoot }; break; }
+          for(const s of (c.subcategories || [])){
+            const inSub = s.links.find(l => l.id === linkId);
+            if(inSub){ found = { arr: s.links, link: inSub }; break; }
+          }
+          if(found) break;
+        }
+        if(found){
+          found.link.title = title; found.link.url = url; found.link.description = description;
+          if(found.arr !== targetArr){
+            const idx = found.arr.findIndex(l => l.id === linkId);
+            if(idx !== -1) found.arr.splice(idx, 1);
+            targetArr.push(found.link);
           }
         }
       } else {
-        const target = state.categories.find(c => c.id === catId);
-        if(target) target.links.push({ id: uid(), title, url, description });
+        targetArr.push({ id: uid(), title, url, description });
       }
       persist(); closeModal(); render();
       return;
@@ -1307,22 +1521,24 @@
         pageBg = url ? { type: 'image', value: url } : { type: 'default', value: '' };
       }
       state.settings = {
+        ...(state.settings || {}),
         theme: document.getElementById('st-theme').value,
+        colorPalette: document.getElementById('st-palette').value,
         fontFamily: document.getElementById('st-font').value,
         fontSize: document.getElementById('st-size').value,
         textColor: document.getElementById('st-color').value,
         pageBg
       };
       applySettings();
-      persist(); closeModal();
+      persist(); closeModal(); render();
       return;
     }
 
     const resetSettings = e.target.closest('[data-action="reset-settings"]');
     if(resetSettings){
-      state.settings = { theme:'dark', fontFamily:'default', fontSize:'medium', textColor:'#e9eaf2', pageBg:{type:'default',value:''} };
+      state.settings = { ...(state.settings || {}), theme:'dark', colorPalette:'azul', fontFamily:'default', fontSize:'medium', textColor:'#e9eaf2', pageBg:{type:'default',value:''} };
       applySettings();
-      persist(); closeModal();
+      persist(); closeModal(); render();
       return;
     }
 
@@ -1333,6 +1549,14 @@
       if(!item) return;
       if(item.type === 'category'){
         state.categories.push(item.category);
+      } else if(item.type === 'subcategory'){
+        let targetCat = state.categories.find(c => c.id === item.catId);
+        if(!targetCat){
+          targetCat = { id: uid(), name: 'Recuperados', color: '#7d8194', links: [] };
+          state.categories.push(targetCat);
+        }
+        targetCat.subcategories = targetCat.subcategories || [];
+        targetCat.subcategories.push(item.subcategory);
       } else if(item.type === 'link'){
         let targetCat = state.categories.find(c => c.id === item.catId);
         if(!targetCat){
@@ -1373,6 +1597,9 @@
       el.classList.remove('drag-over-top','drag-over-bottom');
     });
     document.querySelectorAll('.drag-over-empty').forEach(el => el.classList.remove('drag-over-empty'));
+    document.querySelectorAll('.nav-drag-over-left,.nav-drag-over-right').forEach(el => {
+      el.classList.remove('nav-drag-over-left','nav-drag-over-right');
+    });
   }
 
   document.addEventListener('dragstart', e => {
@@ -1385,18 +1612,26 @@
       requestAnimationFrame(() => card.classList.add('dragging'));
       return;
     }
+    const navPillHandle = e.target.closest('.cat-nav-pill');
+    if(navPillHandle){
+      dragSource = { type: 'category', catId: navPillHandle.dataset.catId };
+      try{ e.dataTransfer.setData('text/plain', navPillHandle.dataset.catId); }catch(err){}
+      e.dataTransfer.effectAllowed = 'move';
+      requestAnimationFrame(() => navPillHandle.classList.add('dragging'));
+      return;
+    }
     const linkHandle = e.target.closest('.drag-handle');
     if(!linkHandle || linkHandle.getAttribute('draggable') !== 'true') return;
     const row = linkHandle.closest('.link-row');
     if(!row) return;
-    dragSource = { type: 'link', catId: row.dataset.catId, linkId: row.dataset.linkId };
+    dragSource = { type: 'link', catId: row.dataset.catId, subcatId: row.dataset.subcatId || '', linkId: row.dataset.linkId };
     try{ e.dataTransfer.setData('text/plain', row.dataset.linkId); }catch(err){}
     e.dataTransfer.effectAllowed = 'move';
     requestAnimationFrame(() => row.classList.add('dragging'));
   });
 
   document.addEventListener('dragend', () => {
-    document.querySelectorAll('.link-row.dragging, .card.dragging').forEach(r => r.classList.remove('dragging'));
+    document.querySelectorAll('.link-row.dragging, .card.dragging, .cat-nav-pill.dragging').forEach(r => r.classList.remove('dragging'));
     clearDragOverStyles();
     dragSource = null;
   });
@@ -1405,6 +1640,18 @@
     if(!dragSource) return;
 
     if(dragSource.type === 'category'){
+      const pill = e.target.closest('.cat-nav-pill');
+      if(pill){
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        clearDragOverStyles();
+        if(pill.dataset.catId !== dragSource.catId){
+          const rect = pill.getBoundingClientRect();
+          const before = (e.clientX - rect.left) < rect.width / 2;
+          pill.classList.add(before ? 'nav-drag-over-left' : 'nav-drag-over-right');
+        }
+        return;
+      }
       const card = e.target.closest('.card');
       if(!card || card.classList.contains('add-category')) return;
       e.preventDefault();
@@ -1437,6 +1684,25 @@
     if(!dragSource) return;
 
     if(dragSource.type === 'category'){
+      const pill = e.target.closest('.cat-nav-pill');
+      if(pill){
+        e.preventDefault();
+        const targetCatId = pill.dataset.catId;
+        if(targetCatId === dragSource.catId){ clearDragOverStyles(); dragSource = null; return; }
+        const srcIndex = state.categories.findIndex(c => c.id === dragSource.catId);
+        if(srcIndex === -1){ clearDragOverStyles(); dragSource = null; return; }
+        const [moved] = state.categories.splice(srcIndex, 1);
+        let targetIndex = state.categories.findIndex(c => c.id === targetCatId);
+        if(targetIndex === -1) targetIndex = state.categories.length;
+        const rect = pill.getBoundingClientRect();
+        const before = (e.clientX - rect.left) < rect.width / 2;
+        state.categories.splice(before ? targetIndex : targetIndex + 1, 0, moved);
+        clearDragOverStyles();
+        dragSource = null;
+        persist();
+        render();
+        return;
+      }
       const card = e.target.closest('.card');
       if(!card || card.classList.contains('add-category')) return;
       e.preventDefault();
@@ -1465,23 +1731,30 @@
     e.preventDefault();
 
     const targetCatId = list.dataset.catId;
+    const targetSubcatId = list.dataset.subcatId || '';
     const row = e.target.closest('.link-row');
 
-    const srcCat = state.categories.find(c => c.id === dragSource.catId);
-    const srcIndex = srcCat.links.findIndex(l => l.id === dragSource.linkId);
+    const srcCtx = findLinkContext(dragSource.catId, dragSource.subcatId, dragSource.linkId);
+    if(!srcCtx){ clearDragOverStyles(); dragSource = null; return; }
+    const srcIndex = srcCtx.arr.findIndex(l => l.id === dragSource.linkId);
     if(srcIndex === -1){ clearDragOverStyles(); dragSource = null; return; }
-    const [moved] = srcCat.links.splice(srcIndex, 1);
+    const [moved] = srcCtx.arr.splice(srcIndex, 1);
 
     const targetCat = state.categories.find(c => c.id === targetCatId);
-    let targetIndex = targetCat.links.length;
+    const targetArr = targetSubcatId
+      ? (targetCat.subcategories || []).find(s => s.id === targetSubcatId)?.links
+      : targetCat.links;
+    if(!targetArr){ srcCtx.arr.splice(srcIndex, 0, moved); dragSource = null; clearDragOverStyles(); return; }
+
+    let targetIndex = targetArr.length;
     if(row){
       const rect = row.getBoundingClientRect();
       const before = (e.clientY - rect.top) < rect.height / 2;
-      let idx = targetCat.links.findIndex(l => l.id === row.dataset.linkId);
-      if(idx === -1) idx = targetCat.links.length;
+      let idx = targetArr.findIndex(l => l.id === row.dataset.linkId);
+      if(idx === -1) idx = targetArr.length;
       targetIndex = before ? idx : idx + 1;
     }
-    targetCat.links.splice(targetIndex, 0, moved);
+    targetArr.splice(targetIndex, 0, moved);
 
     clearDragOverStyles();
     dragSource = null;
