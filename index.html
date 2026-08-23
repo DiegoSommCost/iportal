@@ -438,6 +438,9 @@
     box-shadow:0 0 0 1px var(--line);
   }
   .palette-swatch.selected{border-color:var(--text);}
+  .backup-field{border-top:1px solid var(--line); padding-top:14px; margin-top:16px;}
+  .backup-actions{display:flex; gap:8px;}
+  .backup-actions .btn{flex:1; font-size:12px; padding:8px 6px;}
   .modal-actions{display:flex; gap:8px; margin-top:18px; justify-content:flex-end;}
   .modal-actions .btn.cancel{background:transparent; color:var(--muted); border:1px solid var(--line);}
   .modal-actions .btn.danger-fill{background:var(--danger); color:#1a0a0a;}
@@ -480,8 +483,8 @@
   //  CONFIGURACIÓN — rellena estos dos valores con los tuyos de jsonbin.io
   //  (En tu cuenta de jsonbin.io: API Keys → X-MASTER-KEY, y el ID de tu bin)
   // ======================================================================
-  const JSONBIN_ID  = '6a5ce4ebf5f4af5e29a426a0';
-  const JSONBIN_KEY = '$2a$10$5TVPyU/SCQ5s1dNjj8n5QO3FBp6oKqga4en31ZPdMC3kVhAd6FPZS';
+  const JSONBIN_ID  = 'PON_AQUI_TU_BIN_ID';
+  const JSONBIN_KEY = 'PON_AQUI_TU_X_MASTER_KEY';
   // ======================================================================
   const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_ID;
 
@@ -1075,13 +1078,13 @@
     setTimeout(() => document.getElementById('f-subcat-name')?.focus(), 30);
   }
 
-  function openConfirm(text, onConfirm){
+  function openConfirm(text, onConfirm, confirmLabel){
     openModal(`
       <h3>Confirmar</h3>
       <p class="confirm-text">${esc(text)}</p>
       <div class="modal-actions">
         <button class="btn cancel" data-action="close-modal">Cancelar</button>
-        <button class="btn danger-fill" id="confirmBtn">Eliminar</button>
+        <button class="btn danger-fill" id="confirmBtn">${esc(confirmLabel || 'Eliminar')}</button>
       </div>
     `);
     document.getElementById('confirmBtn').addEventListener('click', () => {
@@ -1238,6 +1241,48 @@
     }
   };
 
+  function exportBackup(){
+    const dataStr = JSON.stringify(state, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `iportal-backup-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleBackupFileSelected(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let parsed;
+      try{
+        parsed = JSON.parse(reader.result);
+      }catch(err){
+        openModal(`<h3>Error</h3><p class="confirm-text">El archivo no es un JSON válido.</p><div class="modal-actions"><button class="btn cancel" data-action="close-modal">Cerrar</button></div>`);
+        return;
+      }
+      if(!parsed || !Array.isArray(parsed.categories)){
+        openModal(`<h3>Error</h3><p class="confirm-text">Este archivo no tiene el formato de una copia de seguridad de iPortal.</p><div class="modal-actions"><button class="btn cancel" data-action="close-modal">Cerrar</button></div>`);
+        return;
+      }
+      openConfirm('Se sustituirán TODOS tus enlaces y categorías actuales por los del archivo. Esta acción no se puede deshacer.', () => {
+        state = parsed;
+        state.trash = state.trash || [];
+        applySettings();
+        persist();
+        render();
+      }, 'Restaurar');
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
   function openSettingsForm(){
     const s = Object.assign({ fontFamily:'default', fontSize:'medium', textColor:'#e9eaf2', theme:'dark', colorPalette:'azul', pageBg:{type:'default',value:''} }, state.settings || {});
     const fontOpts = Object.entries(FONT_OPTIONS).map(([k,v]) => `<option value="${k}" ${s.fontFamily===k?'selected':''}>${esc(v.label)}</option>`).join('');
@@ -1287,12 +1332,21 @@
         <label>URL de la imagen</label>
         <input id="st-bg-image" value="${pageBg.type==='image' ? esc(pageBg.value) : ''}" placeholder="https://..." />
       </div>
+      <div class="field backup-field">
+        <label>Copia de seguridad</label>
+        <div class="backup-actions">
+          <button type="button" class="btn cancel" data-action="export-backup">⬇ Descargar copia</button>
+          <button type="button" class="btn cancel" data-action="import-backup">⬆ Restaurar copia</button>
+        </div>
+        <input type="file" id="backupFileInput" accept="application/json" style="display:none;" />
+      </div>
       <div class="modal-actions">
         <button class="btn cancel" data-action="reset-settings">Restablecer</button>
         <button class="btn cancel" data-action="close-modal">Cancelar</button>
         <button class="btn" data-action="save-settings">Guardar</button>
       </div>
     `);
+    document.getElementById('backupFileInput').addEventListener('change', handleBackupFileSelected);
     document.querySelectorAll('.palette-swatch').forEach(btn => {
       btn.addEventListener('click', () => {
         document.getElementById('st-palette').value = btn.dataset.palette;
@@ -1462,6 +1516,12 @@
       persist(); render();
       return;
     }
+
+    const exportBtn = e.target.closest('[data-action="export-backup"]');
+    if(exportBtn){ exportBackup(); return; }
+
+    const importBtn = e.target.closest('[data-action="import-backup"]');
+    if(importBtn){ document.getElementById('backupFileInput')?.click(); return; }
 
     const favToggle = e.target.closest('[data-action="toggle-favbar"]');
     if(favToggle){
