@@ -103,10 +103,13 @@
     color:var(--amber);
     border-radius:50%;
     font-size:13px;
+    line-height:1;
+    padding:0;
     cursor:pointer;
     margin-right:8px;
     transition:border-color .15s, transform .15s;
   }
+  .fav-star-toggle::before{content:"⭐"; transform:translate(0.5px, -0.5px);}
   .fav-star-toggle:hover{border-color:var(--amber);}
   .fav-star-toggle.open{transform:scale(1.05);}
   .nav-sep{width:1px; height:20px; background:var(--line); margin-right:8px; flex-shrink:0;}
@@ -199,11 +202,11 @@
   /* ---- Grid ---- */
   .grid{
     display:grid;
-    grid-template-columns:repeat(2,1fr);
+    grid-template-columns:repeat(auto-fit, minmax(440px, 1fr));
     align-items:start;
     gap:18px;
-    padding:22px 24px;
-    max-width:1200px;
+    padding:22px 32px;
+    max-width:1800px;
     margin:0 auto;
   }
   @media (max-width:760px){
@@ -294,8 +297,10 @@
     -webkit-mask-image:linear-gradient(to bottom, black 15%, transparent 95%);
     pointer-events:none;
   }
-  .link-list{display:flex; flex-direction:column; gap:0px;}
-  .link-list.favorites-flow{flex-direction:row; flex-wrap:wrap; gap:5px;}
+  .link-list{column-count:2; column-gap:14px; gap:0px;}
+  .link-list.is-collapsed{column-count:1;}
+  .link-list .link-row{break-inside:avoid; -webkit-column-break-inside:avoid;}
+  .link-list.favorites-flow{column-count:1; display:flex; flex-direction:row; flex-wrap:wrap; gap:5px;}
   .link-row.compact{
     background:var(--bg);
     border:1px solid var(--line);
@@ -888,7 +893,7 @@
       ${state.categories.length ? `
       <div class="cat-nav-row">
         ${pinnedRows.length ? `
-        <button class="fav-star-toggle${favOpen ? ' open' : ''}" data-action="toggle-favbar" title="${favOpen ? 'Ocultar favoritos' : 'Mostrar favoritos'}">⭐</button>
+        <button class="fav-star-toggle${favOpen ? ' open' : ''}" data-action="toggle-favbar" title="${favOpen ? 'Ocultar favoritos' : 'Mostrar favoritos'}"></button>
         <span class="nav-sep"></span>` : ''}
         <nav class="cat-nav" id="catNav">${navPills}</nav>
       </div>` : ''}
